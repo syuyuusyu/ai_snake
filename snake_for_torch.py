@@ -29,15 +29,14 @@ class Block():
             y -= 1
         elif self.direction == 'down':
             y += 1
-        if x < 0:
-            x = board_size -1
-        if x > board_size-1:
-            x = 0
-        if y < 0:
-            y = board_size-1
-        if y > board_size -1:
-            y = 0
-        bead = False
+        # if x < 0:
+        #     x = board_size -1
+        # if x > board_size-1:
+        #     x = 0
+        # if y < 0:
+        #     y = board_size-1
+        # if y > board_size -1:
+        #     y = 0
         for food in foods:
             if food.x == x and food.y == y:
                 new_head = Block(x, y)
@@ -45,15 +44,17 @@ class Block():
                 snake.appendleft(new_head)
                 foods.pop()
                 foods.appendleft(Food.create(board_size,snake))
-                return bead          
+                return False          
         snake.pop()
         for block in snake:
             if x == block.x and y == block.y:
-                bead = True
+                return True
+            if x < 0 or x > board_size-1 or y < 0 or y > board_size -1:
+                return True
         new_head = Block(x, y)
         new_head.direction = self.direction
         snake.appendleft(new_head)
-        return bead
+        return False
 
 class Food(Block):
     def __init__(self, x, y) -> None:
@@ -163,7 +164,15 @@ def game_loop():
         #训练模型。评估模型的效能
         train(model,optimizer,loss_fn,memory,gamma,batch_size,device)
         while game_loss == True:
-            game_loop()
+            loop_count += 1
+            input_delay = 1  # 设定输入处理延迟
+            input_counter = 0
+            game_quit = False
+            game_loss = False
+            snake = deque()
+            foods = deque()
+            repeat = []
+            init(foods,snake)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -188,17 +197,17 @@ def game_loop():
             previous_length = len(snake)
             previous_state = torch.tensor(play_ground, dtype=torch.float32).unsqueeze(0).unsqueeze(1).to(device)
             action = ['left', 'right', 'up', 'down'].index(snake[0].direction)
+            previous_distance = math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2)
             game_loss = snake[0].move(snake,foods)
             # 计算奖励
-            reward = -1
-            distance = min(math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2),10)
+            reward = 0.01
+            distance = math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2)
             if len(snake) > previous_length:
-                reward = 100/distance  # 吃到食物的奖励
+                reward = 1  # 吃到食物的奖励
             elif game_loss:
-                reward = -100  # 撞到自己或墙壁的惩罚
-            elif len(repeat) > board_size:
-                reward = -50 #重复运行
-                repeat.clear()
+                reward = -10  # 撞到自己或墙壁的惩罚
+            elif distance < previous_distance:
+                reward = 0.1 #靠近食物的奖励
             next_state = torch.tensor(play_ground, dtype=torch.float32).unsqueeze(0).unsqueeze(1).to(device)
             memory.append((previous_state, action, reward, next_state, game_loss))                
             pygame.display.flip()
