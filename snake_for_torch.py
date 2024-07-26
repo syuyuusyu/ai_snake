@@ -138,7 +138,7 @@ def draw():
                 pygame.draw.rect(screen, color_dic[value], pygame.Rect(x * block_size, y * block_size, block_size, block_size))
 
 model = SnakeNet(board_size=board_size)
-device = 'mps'
+device = 'cuda'
 gamma = 0.99  # 折扣因子
 epsilon = 0.1  # 探索率
 learning_rate = 0.001
