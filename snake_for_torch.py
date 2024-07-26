@@ -138,47 +138,54 @@ def draw():
                 pygame.draw.rect(screen, color_dic[value], pygame.Rect(x * block_size, y * block_size, block_size, block_size))
 
 model = SnakeNet(board_size=board_size)
+
 device = 'mps'
 gamma = 0.99  # 折扣因子
 epsilon = 0.1  # 探索率
-learning_rate = 0.001
+learning_rate = 0.0001
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 memory = deque(maxlen=5000)  # 经验回放缓冲区
 batch_size = 32
 loss_fn = F.mse_loss
-from train import train,predict
-loop_count = 0
+from train import train,predict,format_data,save_checkpoint,load_checkpoint
+
 
 def game_loop():
-    global loop_count
-    loop_count += 1
+    loop_count = 0
+    max_length = 0
+    max_step = 0
+
+    step_count = 0
     input_delay = 1  # 设定输入处理延迟
     input_counter = 0
     game_quit = False
     game_loss = False
     snake = deque()
     foods = deque()
-    repeat = []
     init(foods,snake)
     while not game_quit:
         #训练模型。评估模型的效能
         train(model,optimizer,loss_fn,memory,gamma,batch_size,device)
         while game_loss == True:
+            print(f"max_length:{max_length} max_step:{max_step} step_count:{step_count} loop_count:{loop_count}")
             loop_count += 1
             input_delay = 1  # 设定输入处理延迟
             input_counter = 0
+            step_count = 0
             game_quit = False
             game_loss = False
             snake = deque()
             foods = deque()
-            repeat = []
+
             init(foods,snake)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_quit = True
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
+                if event.key == pygame.K_s:
+                    save_checkpoint(model=model,optimizer=optimizer,filepath=f"pth/checkpoint_size_{board_size}_max_length_{max_length}_max_step_{max_step}_loop_count_{loop_count}")
+                elif event.key == pygame.K_LEFT:
                     if snake[0].direction != 'right':
                         snake[0].change_direction('left')
                 elif event.key == pygame.K_RIGHT:
@@ -191,34 +198,43 @@ def game_loop():
                     if snake[0].direction != 'up':
                         snake[0].change_direction('down')
         if input_counter == 0:
+            step_count += 1
             update_play_ground(foods,snake)
             screen.fill(white)
             draw()
             previous_length = len(snake)
-            previous_state = torch.tensor(play_ground, dtype=torch.float32).unsqueeze(0).unsqueeze(1).to(device)
-            action = ['left', 'right', 'up', 'down'].index(snake[0].direction)
+            previous_state = format_data(play_ground,device)
+            previous_direction = snake[0].direction
+            action = ['left', 'right', 'up', 'down'].index(previous_direction)
             previous_distance = math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2)
             game_loss = snake[0].move(snake,foods)
             # 计算奖励
-            reward = 0.01
+            reward = 2
             distance = math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2)
+            point = len(snake) - 4
+            if len(snake)> max_length:
+                max_length = len(snake)
+            if step_count > max_step:
+                max_step = step_count            
             if len(snake) > previous_length:
-                reward = 1  # 吃到食物的奖励
+                reward = 10 * point  # 吃到食物的奖励
             elif game_loss:
-                reward = -10  # 撞到自己或墙壁的惩罚
+                reward = -50  # 撞到自己或墙壁的惩罚
             elif distance < previous_distance:
-                reward = 0.1 #靠近食物的奖励
-            next_state = torch.tensor(play_ground, dtype=torch.float32).unsqueeze(0).unsqueeze(1).to(device)
-            memory.append((previous_state, action, reward, next_state, game_loss))                
-            pygame.display.flip()
+                reward = 5 #靠近食物的奖励
+            next_state = format_data(play_ground,device)
+            
             #预测新的方向
             predict_direction = predict(model,play_ground,device)
-            if predict_direction not in repeat:
-                repeat.append(predict_direction)
-            else:
-                repeat.clear()
+            #不能预测相反的方向
+            if (previous_direction == 'up' and predict_direction == 'down') or \
+            (previous_direction == 'down' and predict_direction == 'up') or \
+            (previous_direction == 'left' and predict_direction == 'right') or \
+            (previous_direction == 'right' and predict_direction == 'left'):
+                reward -= 50                     
             snake[0].direction = predict_direction
-            print(len(snake),loop_count)
+            memory.append((previous_state, action, reward, next_state, game_loss))    
+            pygame.display.flip() 
         input_counter = (input_counter + 1) % input_delay
         clock.tick(60) 
     pygame.quit()

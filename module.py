@@ -5,16 +5,27 @@ import torch.nn.functional as F
 class SnakeNet(nn.Module):
     def __init__(self, board_size):
         super(SnakeNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.fc1 = nn.Linear(64 * board_size * board_size, 256)
-        self.fc2 = nn.Linear(256, 4)  # 输出4个方向的值，上、下、左、右
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        self.flatten = nn.Flatten()
+        self.prediction = nn.Sequential(
+            nn.Linear(64 * 2 * 2, 256),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(256, 4) # 输出4个方向的值，上、下、左、右
+        )
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = x.view(x.size(0), -1)  # 展平
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.features(x)
+        x = self.flatten(x)
+        x = self.prediction(x)
         return x
     
