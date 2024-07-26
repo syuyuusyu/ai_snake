@@ -4,9 +4,13 @@ import random
 
 
 
-def predict(model, data_channel, device: torch.device = 'cpu') -> str:
+def predict(model, data_channel, device: torch.device = 'cpu',epsilon = 0.1) -> str:
+    directions = ['up', 'down', 'left', 'right']
+    if random.random() < epsilon:
+        # 探索：随机选择一个动作
+        return random.choice(directions)
     # 将输入数据转换为 PyTorch 张量，并移动到指定设备
-    input_data = torch.tensor(data_channel, dtype=torch.float32).unsqueeze(0).unsqueeze(1).to(device)
+    input_data = format_data(data_channel,device)
 
     # 确保模型在指定设备上，并设置为评估模式
     model.to(device)
@@ -17,7 +21,7 @@ def predict(model, data_channel, device: torch.device = 'cpu') -> str:
         output_data = model(input_data)
 
     # 处理输出数据，根据输出的最大值选择方向
-    directions = ['up', 'down', 'left', 'right']
+
     predicted_index = torch.argmax(output_data, dim=1).item()
     predicted_direction = directions[predicted_index]
     return predicted_direction
@@ -46,11 +50,42 @@ def train(model, optimizer, loss_fn, memory, gamma, batch_size, device):
     
     # 计算损失
     loss = loss_fn(current_q_values, target_q_values)
-    print(loss)
     # 优化模型参数
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     return loss.item()
 
+def format_data(play_ground,device:torch.device='cpu'):
+    input_data = torch.tensor(play_ground, dtype=torch.float32)
+    # 如果需要调整 x 和 y 的顺序，可以使用 .transpose() 或 .permute()
+    input_data = input_data.transpose(0, 1)  # 如果 play_ground 是 (x, y)，这一步转换为 (y, x)
+    # 增加 batch 维度和 channel 维度
+    input_data = input_data.unsqueeze(0).unsqueeze(1)
+    return input_data.to(device)
 
+
+def save_checkpoint(model, optimizer, filepath):
+    state = {
+
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict()
+    }
+    torch.save(state, filepath)
+
+def load_checkpoint(filepath, model, optimizer, device):
+    # 加载检查点并将其移动到指定设备
+    checkpoint = torch.load(filepath, map_location=device)
+    
+    # 加载模型状态字典并将模型移动到指定设备
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    
+    # 加载优化器状态字典并确保它们在同一设备上
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    
+    # 如果需要，可以将优化器中的状态参数也移动到正确的设备上
+    for state in optimizer.state.values():
+        for k, v in state.items():
+            if torch.is_tensor(v):
+                state[k] = v.to(device)
