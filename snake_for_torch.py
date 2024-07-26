@@ -139,7 +139,13 @@ def draw():
 
 model = SnakeNet(board_size=board_size)
 
-device = 'mps'
+device = 'cpu'
+if torch.cuda.is_available():
+    device = 'cuda'
+elif torch.backends.mps.is_available():
+    device = 'mps'
+
+print(device)
 gamma = 0.99  # 折扣因子
 epsilon = 0.1  # 探索率
 learning_rate = 0.0001
@@ -148,6 +154,8 @@ memory = deque(maxlen=5000)  # 经验回放缓冲区
 batch_size = 32
 loss_fn = F.mse_loss
 from train import train,predict,format_data,save_checkpoint,load_checkpoint
+
+#load_checkpoint(model=model,optimizer=optimizer,filepath='pth/checkpoint_size_10_max_length_5_max_step_13_loop_count_152',device=device)
 
 
 def game_loop():

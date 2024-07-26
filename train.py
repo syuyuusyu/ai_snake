@@ -73,7 +73,19 @@ def save_checkpoint(model, optimizer, filepath):
     }
     torch.save(state, filepath)
 
-def load_checkpoint(filepath, model, optimizer):
-    checkpoint = torch.load(filepath)
+def load_checkpoint(filepath, model, optimizer, device):
+    # 加载检查点并将其移动到指定设备
+    checkpoint = torch.load(filepath, map_location=device)
+    
+    # 加载模型状态字典并将模型移动到指定设备
     model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    
+    # 加载优化器状态字典并确保它们在同一设备上
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    
+    # 如果需要，可以将优化器中的状态参数也移动到正确的设备上
+    for state in optimizer.state.values():
+        for k, v in state.items():
+            if torch.is_tensor(v):
+                state[k] = v.to(device)
