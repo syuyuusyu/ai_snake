@@ -1,7 +1,8 @@
+import torch
 board_size = 10
 play_ground = []
 
-while True:
-    for i in range(0,board_size):
-        play_ground[i] = [0]* board_size
-    print(len(play_ground))
+action_batch= torch.tensor([[ 1,2,3,4]])
+
+a = [1,2,3,4]
+print(a.index(2))
