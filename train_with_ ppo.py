@@ -1,22 +1,17 @@
 import torch
-import sb3_contrib
-import stable_baselines3
-import gymnasium
-
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor,SubprocVecEnv
 from stable_baselines3.common.env_checker import check_env
 
-print(sb3_contrib.__version__)
-print(stable_baselines3.__version__)
-print(gymnasium.__version__)
 # 导入你定义的 SnakeEnv 类
 from game_env import SnakeEnv
 
+test_env = SnakeEnv()
 
-
+# 检查环境是否符合 stable_baselines3 的要求
+check_env(test_env, warn=True, skip_render_check=True)
 
 device = 'cpu'
 if torch.cuda.is_available():
@@ -39,12 +34,26 @@ def mask_fn(env: SnakeEnv):
     return mask
 
 def make_env():
-    return SnakeEnv(seed=23, board_size=12, silent_mode=False)
+    return Monitor(SnakeEnv(seed=23, board_size=12, silent_mode=False))
 
 # 使用 DummyVecEnv 包装环境
 env = SubprocVecEnv([make_env])
-#env = ActionMasker(env, mask_fn)
-check_env(env, warn=True, skip_render_check=True)
+env = ActionMasker(env, mask_fn)
+# 创建模型
+model = MaskablePPO("MlpPolicy", env, verbose=1,device=device)
 
-# 创建并训练模型
-model = MaskablePPO("MlpPolicy", env, verbose=1, device=device)
+# 训练模型
+model.learn(total_timesteps=10000)
+
+# 保存模型
+model.save("pth/snake_ppo")
+
+# 加载模型
+model = MaskablePPO.load("pth/snake_ppo")
+
+# 评估模型
+obs = env.reset()
+for _ in range(1000):
+    action, _states = model.predict(obs)
+    obs, rewards, dones, info = env.step(action)
+    env.render()
