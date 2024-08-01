@@ -48,8 +48,10 @@ class Block():
         snake.pop()
         for block in snake:
             if x == block.x and y == block.y:
+                print('colled')
                 return True
             if x < 0 or x > board_size-1 or y < 0 or y > board_size -1:
+                print('wall')
                 return True
         new_head = Block(x, y)
         new_head.direction = self.direction
@@ -151,12 +153,12 @@ gamma = 0.99  # 折扣因子
 epsilon = 0.1  # 探索率
 learning_rate = 0.0001
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-memory = deque(maxlen=5000)  # 经验回放缓冲区
+memory = deque(maxlen=10000)  # 经验回放缓冲区
 batch_size = 32
 loss_fn = F.mse_loss
 from train import train,predict,format_data,save_checkpoint,load_checkpoint
 
-#load_checkpoint(model=model,optimizer=optimizer,filepath='pth/checkpoint_size_10_max_length_5_max_step_13_loop_count_152',device=device)
+#load_checkpoint(model=model,optimizer=optimizer,filepath='pth/checkpoint_size_10_max_length_6_max_step_69_loop_count_24540',device=device)
 
 
 def game_loop():
@@ -240,8 +242,10 @@ def game_loop():
             (previous_direction == 'down' and predict_direction == 'up') or \
             (previous_direction == 'left' and predict_direction == 'right') or \
             (previous_direction == 'right' and predict_direction == 'left'):
+                print(f'back {previous_direction} {predict_direction}')
                 reward -= 50                     
             snake[0].direction = predict_direction
+            print(reward)
             memory.append((previous_state, action, reward, next_state, game_loss))    
             pygame.display.flip() 
         input_counter = (input_counter + 1) % input_delay

@@ -132,7 +132,7 @@ def draw():
                 pygame.draw.rect(screen, color_dic[value], pygame.Rect(x * block_size, y * block_size, block_size, block_size))
 
 def game_loop():
-    input_delay = 10  # 设定输入处理延迟
+    input_delay = 6  # 设定输入处理延迟
     input_counter = 0
     game_quit = False
     game_loss = False
@@ -144,9 +144,11 @@ def game_loop():
             screen.fill(blue)
             message("You Lost! Press Q-Quit or C-Play Again", red)
             pygame.display.update()
-
             for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    game_quit = True
                 if event.type == pygame.KEYDOWN:
+                    print(event.key)
                     if event.key == pygame.K_q:
                         game_quit = True
                         game_loss = False
