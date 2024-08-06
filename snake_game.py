@@ -39,9 +39,11 @@ class SnakeGame:
         self.step_count = 0
         self.game_loop = 0
         random.seed(seed)
+        self.reset()
         if not silent_mode:
             pygame.init()
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
+            print(self.screen)
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
             self.display_intial = 10
@@ -49,9 +51,7 @@ class SnakeGame:
             if not train_mode:
                 self.font_style = pygame.font.SysFont(None, 50)
     
-    def reset(self,seed=None):
-        if seed is not None:
-            random.seed(seed)
+    def reset(self):
         self.game_loop += 1
         self.step_count = 0
         self.play_ground = [ [0]*self.board_size for _ in range(0,self.board_size) ]
@@ -64,6 +64,7 @@ class SnakeGame:
         self.food = self.create_food()
         self.game_quit = False
         self.game_loss = False
+
 
     def create_food(self)->Tuple[int,int,int]:
         # 生成所有可能的位置
@@ -139,6 +140,10 @@ class SnakeGame:
     
         return (False,reward,state)
     
+    def close(self):
+        if not self.silent_mode:
+            pygame.quit()   
+
     def run(self):
         while not self.game_quit:
             while self.game_loss:
@@ -184,5 +189,4 @@ class SnakeGame:
 
 if __name__ == "__main__":  
     game = SnakeGame(board_size=10,silent_mode=False,train_mode=True)
-    game.reset()
     game.run()
