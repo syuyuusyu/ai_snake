@@ -19,9 +19,7 @@ def predict(model, data_channel, device: torch.device = 'cpu',epsilon = 0.1) -> 
     # 禁用梯度计算（我们不需要梯度在推理时）
     with torch.no_grad():
         output_data = model(input_data)
-
     # 处理输出数据，根据输出的最大值选择方向
-
     predicted_index = torch.argmax(output_data, dim=1).item()
     predicted_direction = directions[predicted_index]
     return predicted_direction
@@ -49,6 +47,7 @@ def train(model, optimizer, loss_fn, memory, gamma, batch_size, device):
         target_q_values = reward_batch + gamma * next_q_values * (1 - done_batch)
     
     # 计算损失
+    #print(current_q_values,target_q_values)
     loss = loss_fn(current_q_values, target_q_values)
     # 优化模型参数
     optimizer.zero_grad()
@@ -64,10 +63,8 @@ def format_data(play_ground,device:torch.device='cpu'):
     input_data = input_data.unsqueeze(0).unsqueeze(1)
     return input_data.to(device)
 
-
 def save_checkpoint(model, optimizer, filepath):
     state = {
-
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict()
     }

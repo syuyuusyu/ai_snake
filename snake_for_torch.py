@@ -44,8 +44,12 @@ class Block():
                 snake.appendleft(new_head)
                 foods.pop()
                 foods.appendleft(Food.create(board_size,snake))
-                return False          
+                print('eat')
+                return False        
         snake.pop()
+        if x < 0 or x > board_size-1 or y < 0 or y > board_size -1:
+            print('wall')
+            return True        
         for block in snake:
             if x == block.x and y == block.y:
                 print('colled')
@@ -219,6 +223,8 @@ def game_loop():
             action = ['left', 'right', 'up', 'down'].index(previous_direction)
             previous_distance = math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2)
             game_loss = snake[0].move(snake,foods)
+            update_play_ground(foods, snake)  # 更新play_ground
+            next_state = format_data(play_ground,device)
             # 计算奖励
             reward = 2
             distance = math.sqrt((snake[0].x - foods[0].x)**2 + (snake[0].y - foods[0].y)**2)
@@ -233,10 +239,9 @@ def game_loop():
                 reward = -50  # 撞到自己或墙壁的惩罚
             elif distance < previous_distance:
                 reward = 5 #靠近食物的奖励
-            next_state = format_data(play_ground,device)
             
             #预测新的方向
-            predict_direction = predict(model,play_ground,device)
+            predict_direction = predict(model,play_ground,device,epsilon)
             #不能预测相反的方向
             if (previous_direction == 'up' and predict_direction == 'down') or \
             (previous_direction == 'down' and predict_direction == 'up') or \
@@ -247,9 +252,13 @@ def game_loop():
             snake[0].direction = predict_direction
             print(reward)
             memory.append((previous_state, action, reward, next_state, game_loss))    
-            pygame.display.flip() 
+            pygame.display.flip()  
+            memory.append((previous_state, action, reward, next_state, game_loss))                     
+            snake[0].direction = predict_direction
+            pygame.display.flip()
+
         input_counter = (input_counter + 1) % input_delay
-        clock.tick(60) 
+        clock.tick(60)
     pygame.quit()
 
 
