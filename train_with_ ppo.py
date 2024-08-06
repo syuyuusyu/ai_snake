@@ -8,7 +8,7 @@ from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor,SubprocVecEnv
 from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback,CheckpointCallback
 import numpy as np
 
 # 导入你定义的 SnakeEnv 类
@@ -58,8 +58,11 @@ def main(render):
         clip_range=0.2,
         tensorboard_log="logs/"
     )
+    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./models/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=100000,callback=render_callback)
+    env.set_training_phase('early')
+    model.learn(total_timesteps=100000,callback=[render_callback,checkpoint_callback,])
+    model.save('ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
