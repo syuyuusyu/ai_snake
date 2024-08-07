@@ -123,16 +123,16 @@ class SnakeGame:
         if (x,y) == self.food[:2]:
             self.snake.appendleft((x,y,1))
             self.food = self.create_food()
-            print('eat food')
+            #print('eat food')
             return (False,float(snake_length*1),4)
         self.snake.pop()
         for _x,_y,_ in self.snake:
             if (x,y) == (_x,_y):
-                print('collied self')
+                #print('collied self')
                 self.game_loss = True
                 return (True,-5.0,3)
         if x < 0 or x > self.board_size-1 or y< 0 or y> self.board_size-1:
-            print('hit wall')
+            #print('hit wall')
             self.game_loss = True
             return (True,-5.0,2)
         reward,state = (0.1,1) if previous_distance > distance else (-0.1,0)

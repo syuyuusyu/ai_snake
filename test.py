@@ -19,6 +19,8 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
+print(device)
+
 def make_env(seed=0):
     def _init():
         env = SnakeEnv(seed=seed,board_size=12, silent_mode=False)
@@ -34,5 +36,5 @@ env = DummyVecEnv([make_env(22)])
 
 
 # 创建并训练模型
-model = MaskablePPO("MlpPolicy", env, verbose=1, device=device)
-model.learn(total_timesteps=10)
+# model = MaskablePPO("MlpPolicy", env, verbose=1, device=device)
+# model.learn(total_timesteps=10)
