@@ -11,7 +11,6 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.callbacks import BaseCallback,CheckpointCallback
 import numpy as np
 
-# 导入你定义的 SnakeEnv 类
 from game_env import SnakeEnv
 
 device = 'cpu'
@@ -40,13 +39,13 @@ class RenderCallback(BaseCallback):
 
 # 创建环境并使用 DummyVecEnv 包装环境
 env = DummyVecEnv([make_env(22)])
-model = MaskablePPO("MlpPolicy", env, verbose=1, device=device)
-model.learn(total_timesteps=2)
+
+
 
 def main(render):
     env = DummyVecEnv([make_env(22)])
     model = MaskablePPO(
-        "MlpPolicy",
+        "CnnPolicy",
         env,
         device=device,
         verbose=1,
@@ -61,8 +60,8 @@ def main(render):
     )
     checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=100000,callback=[checkpoint_callback,])
-    model.save('pth/ppo_snake_early')
+    model.learn(total_timesteps=10000,callback=[checkpoint_callback,])
+    #model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
