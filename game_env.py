@@ -1,21 +1,52 @@
+import torch
+import torch.nn as nn
 import gym
 from gym import spaces
 import numpy as np
 from snake_game import SnakeGame
 from typing import Optional
 import time
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 class SnakeEnv(gym.Env):
     def __init__(self, board_size=10, silent_mode=True, seed=0):
         super().__init__()
         self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True)
         self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Box(low=0, high=6, shape=(board_size * board_size,), dtype=np.int32)
+        self.scale = max(1, (32 + board_size - 1) // board_size)  # 确保 board_size * scale >= 32
+        self.observation_space = spaces.Box(low=0, high=255, shape=(4, self.game.board_size * self.scale, self.game.board_size * self.scale), dtype=np.uint8)
         self.render_delay = 1.0 / 60  # 60 FPS
-        self.last_render_time = 0   
+        self.last_render_time = 0
 
     def _get_state(self):
-        state = np.copy(self.game.play_ground).T[::-1].flatten().astype(np.int32)
+        state = np.zeros((4, self.game.board_size * self.scale, self.game.board_size * self.scale), dtype=np.uint8)  # 4个通道
+        # 颜色值（使用0-255范围的整数表示颜色）
+        snake_body_value = [0, 0, 255]  # 蓝色
+        food_value = [0, 255, 0]  # 绿色
+        snake_head_value = [255, 0, 0]  # 红色
+
+        for x in range(self.game.board_size):
+            for y in range(self.game.board_size):
+                value = self.game.play_ground[x][y]
+                if value == 1:  # 蛇身
+                    for i in range(3):
+                        state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] = snake_body_value[i]
+                elif value == 2:  # 食物
+                    for i in range(3):
+                        state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] = food_value[i]
+                elif value == 3:  # 蛇头
+                    for i in range(3):
+                        state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] = snake_head_value[i]
+
+        # 添加方向信息
+        direction = self.game.directions.index(self.game.direction)
+        state[3, :, :] = direction * 85  # 将方向索引映射到0-255范围
+
+        # 对蛇身添加渐变颜色，模拟颜色渐变效果
+        for index, (x, y, _) in enumerate(self.game.snake):
+            gradient_value = int((index + 1) / len(self.game.snake) * 255)
+            for i in range(3):
+                state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] *= gradient_value
         return state
     
     def reset(self):

@@ -137,7 +137,6 @@ class SnakeGame:
             self.game_loss = True
             return (True,-5.0,2)
         reward,state = (0.1,1) if previous_distance > distance else (-0.1,0)
-        print(reward)
         self.snake.appendleft((x,y,1))
     
         return (False,reward,state)

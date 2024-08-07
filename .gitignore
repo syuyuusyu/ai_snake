@@ -1,4 +1,4 @@
 __pycache__/
-snake/
+.env/
 models/
 logs/
