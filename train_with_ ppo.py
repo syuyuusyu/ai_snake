@@ -56,13 +56,13 @@ def main(render):
         gamma=0.94,
         learning_rate=0.0003,
         clip_range=0.2,
+        ent_coef = 0.01,
         tensorboard_log="logs/"
     )
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./models/', name_prefix='ppo_snake')
+    checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
-    env.set_training_phase('early')
-    model.learn(total_timesteps=100000,callback=[render_callback,checkpoint_callback,])
-    model.save('ppo_snake_early')
+    model.learn(total_timesteps=100000,callback=[checkpoint_callback,])
+    model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':

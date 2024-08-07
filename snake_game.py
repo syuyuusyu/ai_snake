@@ -3,6 +3,7 @@ from collections import deque
 from typing import Tuple,Deque
 import random
 import math
+import numpy as np
 
 class SnakeGame:
 
@@ -22,7 +23,7 @@ class SnakeGame:
         7 : blue,
     }
 
-    def __init__(self,board_size = 10,silent_mode = True,seed = 0,train_mode = False) -> None:
+    def __init__(self,board_size = 10,silent_mode = True,seed = 0,train_mode = False,model = None) -> None:
         self.board_size = board_size
         self.directions = ['up','down','left','right']
         self.snake:Deque[Tuple[int,int,int]] = deque()
@@ -39,11 +40,11 @@ class SnakeGame:
         self.step_count = 0
         self.game_loop = 0
         random.seed(seed)
+        self.model = model
         self.reset()
         if not silent_mode:
             pygame.init()
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
-            print(self.screen)
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
             self.display_intial = 10
@@ -123,19 +124,20 @@ class SnakeGame:
         if (x,y) == self.food[:2]:
             self.snake.appendleft((x,y,1))
             self.food = self.create_food()
-            print('eat food')
+            #print('eat food')
             return (False,float(snake_length*1),4)
         self.snake.pop()
         for _x,_y,_ in self.snake:
             if (x,y) == (_x,_y):
-                print('collied self')
+                #print('collied self')
                 self.game_loss = True
                 return (True,-5.0,3)
         if x < 0 or x > self.board_size-1 or y< 0 or y> self.board_size-1:
-            print('hit wall')
+            #print('hit wall')
             self.game_loss = True
             return (True,-5.0,2)
         reward,state = (0.1,1) if previous_distance > distance else (-0.1,0)
+        print(reward)
         self.snake.appendleft((x,y,1))
     
         return (False,reward,state)
@@ -179,6 +181,10 @@ class SnakeGame:
                             if self.direction != 'up':
                                 self.direction = 'down'
             if self.display_count == 0:
+                if self.model is not None:
+                    obs = np.copy(self.play_ground).T[::-1].flatten().astype(np.int32)
+                    action, _ = self.model.predict(obs, deterministic=True)
+                    self.direction = self.directions[action]
                 self.step()
                 self.update_play_ground()
                 self.draw()
