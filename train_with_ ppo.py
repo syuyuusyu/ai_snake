@@ -20,6 +20,7 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
+
 def make_env(seed=0):
     def _init():
         env = SnakeEnv(seed=seed,board_size=12, silent_mode=True)
@@ -51,18 +52,16 @@ def main(render):
         device=device,
         verbose=1,
         n_steps=2048,
-        batch_size=512*2,
+        batch_size=512*4,
         n_epochs=4,
         gamma=0.94,
         learning_rate=0.0003,
         clip_range=0.2,
-        tensorboard_log="logs/"
     )
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./models/', name_prefix='ppo_snake')
+    #checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./pth/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
-    env.set_training_phase('early')
-    model.learn(total_timesteps=100000,callback=[render_callback,checkpoint_callback,])
-    model.save('ppo_snake_early')
+    model.learn(total_timesteps=1000000)
+    model.save('./pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
