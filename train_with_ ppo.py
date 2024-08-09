@@ -76,10 +76,11 @@ def main(render):
     env.close()
 
 def load(render):
+    lr_schedule = linear_schedule(2.5e-4, 2.5e-6)
     env = DummyVecEnv([make_env(22)])
     model = MaskablePPO.load("pth/ppo_snake_early.zip", env=env, device=device)
     model.gamma=0.94
-    model.learning_rate = 0.0003
+    model.learning_rate = lr_schedule
     model.ent_coef = 0.01
     render_callback = RenderCallback() if render else None
     model.learn(total_timesteps=100000)
