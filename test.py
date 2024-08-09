@@ -2,6 +2,8 @@ import torch
 import sb3_contrib
 import stable_baselines3
 import gym
+from typing import Tuple,Deque
+from collections import deque
 
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
