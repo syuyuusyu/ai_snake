@@ -26,9 +26,8 @@ class SnakeGame:
     def __init__(self,board_size = 10,silent_mode = True,seed = 0,train_mode = False,model = None) -> None:
         self.board_size = board_size
         self.directions = ['up','down','left','right']
-        self.snake:Deque[Tuple[int,int,int]] = deque()
-        self.play_ground = [[0]*board_size for _ in range(0,board_size)]
-        self.food = (0,0,2)
+        self.snake:Deque[Tuple[int,int]] = deque()
+        self.food = (0,0)
         self.direction = 'left'
         self.game_quit = False
         self.game_loss = False
@@ -42,6 +41,7 @@ class SnakeGame:
         random.seed(seed)
         self.model = model
         self.reset()
+        self.scale = max(1, (32 + board_size - 1) // board_size)  # 确保 board_size * scale >= 32
         if not silent_mode:
             pygame.init()
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
@@ -55,91 +55,100 @@ class SnakeGame:
     def reset(self):
         self.game_loop += 1
         self.step_count = 0
-        self.play_ground = [ [0]*self.board_size for _ in range(0,self.board_size) ]
         self.snake.clear()
         x, y = int(self.board_size/2),int(self.board_size/2)
-        self.snake.append((x,y,1))
+        self.snake.append((x,y))
         for i in range(1,4):
-            self.snake.append((x+i,y,1))
+            self.snake.append((x+i,y))
         self.direction = 'left'
         self.food = self.create_food()
         self.game_quit = False
         self.game_loss = False
+    
+    
+    def get_play_ground(self):
+        obs = np.full((self.board_size,self.board_size,3),255,dtype=np.uint8)
+        snake_body_value = [[0, 0, v] for v in np.linspace(100,255,len(self.snake),dtype=np.uint8 ) ] # 蓝色
+        food_value = [0, 255, 0]  # 绿色
+        snake_head_value = [255, 0, 0]  # 红色
+        obs[tuple(self.food[:2])] = food_value
+        for index, (x,y) in enumerate(self.snake):
+            if index ==0:
+                obs[(x,y)] = snake_head_value
+            else:
+                obs[(x,y)] = snake_body_value[index]
+        #obs = np.repeat(np.repeat(obs,self.scale,axis=0),self.scale, axis=1)
+        #obs = np.transpose(obs,(1,0,2))
+        return obs
+    
+    def get_obs(self):
+        obs = self.get_play_ground()
+        obs = np.repeat(np.repeat(obs,self.scale,axis=0),self.scale, axis=1)
+        obs = np.transpose(obs,(2,0,1))
+        return obs
+    
+    def draw(self):
+        if self.silent_mode:
+            return    
+        for x,arr in enumerate(self.get_play_ground()):
+            for y,color in enumerate(arr):
+                pygame.draw.rect(self.screen, color, pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size))
+        pygame.display.flip()      
 
 
     def create_food(self)->Tuple[int,int,int]:
         # 生成所有可能的位置
         all_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size)}
         # 移除蛇占据的位置
-        snake_positions = {(x,y) for x,y,_ in self.snake}
+        snake_positions = {(x,y) for x,y in self.snake}
         available_positions = list(all_positions - snake_positions)
         
         if not available_positions:
             self.geme_win = True
             raise ValueError("No available positions to place the food")
         x, y = random.choice(available_positions)
-        return (x,y,1)
+        return (x,y)
     
-    def update_play_ground(self):
-        self.play_ground = [ [0]*self.board_size for _ in range(0,self.board_size) ]
-        self.play_ground[self.food[0]][self.food[1]] = self.food[2]
-        for index,(x,y,v) in enumerate(self.snake):
-            if index == 0:
-                _v = self.directions.index(self.direction)+1
-                self.play_ground[x][y] = 2 +_v
-            else:
-                self.play_ground[x][y] = v
-    
-    def draw(self):
-        if self.silent_mode:
-            return
-        self.screen.fill(SnakeGame.white)
-        for x,arr in enumerate(self.play_ground):
-            for y,value in enumerate(arr):
-                if value != 0:
-                    pygame.draw.rect(self.screen, SnakeGame.color_dic[value], pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size))
-        pygame.display.flip()
-
     def step(self)-> Tuple[bool,float,int]:
         """Move the snake one step in the current direction.
         
         Returns:
-            Tuple[bool,float, int]: A tuple containing a boolean indicating
-                                if the game is over and a float representing the reward. 
+            Tuple[bool, int]: A tuple containing a boolean indicating if the game is over.
 
                                 int representing the stat of this this step 
+
                                     0: the head leave the food
                                     1: this head approch the food
                                     2: hit wall
                                     3: collied self
                                     4: eat food
         """
-        snake_length = len(self.snake)
-        x,y,_ = self.snake[0]
+        x_origin,y_origin = self.snake[0]
         step_point = [[0,-1],[0,1],[-1,0],[1,0]]
         index = self.directions.index(self.direction)
-        previous_distance = math.sqrt((x - self.food[0])**2 + (y - self.food[1])**2)
-        x,y = x + step_point[index][0], y+step_point[index][1]
-        distance = math.sqrt((x - self.food[0])**2 + (y - self.food[1])**2)
-        if (x,y) == self.food[:2]:
-            self.snake.appendleft((x,y,1))
+        x,y = x_origin + step_point[index][0], y_origin+step_point[index][1]
+
+        if (x,y) == self.food:
+            self.snake.appendleft((x,y))
+            if len(self.snake) == self.board_size**2:
+                #win the game!!!
+                return (True,5) 
             self.food = self.create_food()
             #print('eat food')
-            return (False,float(snake_length*1),4)
+            return (False,4)
         self.snake.pop()
-        for _x,_y,_ in self.snake:
+        for _x,_y in self.snake:
             if (x,y) == (_x,_y):
                 #print('collied self')
                 self.game_loss = True
-                return (True,-5.0,3)
+                return (True,3)
         if x < 0 or x > self.board_size-1 or y< 0 or y> self.board_size-1:
             #print('hit wall')
             self.game_loss = True
-            return (True,-5.0,2)
-        reward,state = (0.1,1) if previous_distance > distance else (-0.1,0)
-        self.snake.appendleft((x,y,1))
-    
-        return (False,reward,state)
+            return (True,2)
+        self.snake.appendleft((x,y))
+        state = 1 if np.linalg.norm(np.array(self.snake[0]) - np.array(self.food)) < np.linalg.norm(np.array(self.snake[1]) - np.array(self.food)) else 0
+        return (False,state)
     
     def close(self):
         if not self.silent_mode:
@@ -181,11 +190,9 @@ class SnakeGame:
                                 self.direction = 'down'
             if self.display_count == 0:
                 if self.model is not None:
-                    obs = np.copy(self.play_ground).T[::-1].flatten().astype(np.int32)
-                    action, _ = self.model.predict(obs, deterministic=True)
+                    action, _ = self.model.predict(self.get_obs(), deterministic=True)
                     self.direction = self.directions[action]
                 self.step()
-                self.update_play_ground()
                 self.draw()
             self.display_count = (self.display_count + 1) % self.display_intial
             if not self.silent_mode:
@@ -193,5 +200,5 @@ class SnakeGame:
         pygame.quit()
 
 if __name__ == "__main__":  
-    game = SnakeGame(board_size=10,silent_mode=False,train_mode=True)
+    game = SnakeGame(board_size=12,silent_mode=False,train_mode=False)
     game.run()

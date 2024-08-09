@@ -1,84 +1,60 @@
-import torch
-import torch.nn as nn
 import gym
 from gym import spaces
 import numpy as np
 from snake_game import SnakeGame
 from typing import Optional
-import time
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+import math
 
 class SnakeEnv(gym.Env):
     def __init__(self, board_size=10, silent_mode=True, seed=0):
         super().__init__()
         self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True)
         self.action_space = spaces.Discrete(4)
-        self.scale = max(1, (32 + board_size - 1) // board_size)  # 确保 board_size * scale >= 32
-        self.observation_space = spaces.Box(low=0, high=255, shape=(4, self.game.board_size * self.scale, self.game.board_size * self.scale), dtype=np.uint8)
-        self.render_delay = 1.0 / 60  # 60 FPS
-        self.last_render_time = 0
+        self.observation_space = spaces.Box(low=0, high=255, shape=(3, self.game.board_size * self.game.scale, self.game.board_size * self.game.scale), dtype=np.uint8)
+        self.max_snake_length = board_size ** 2
+        self.max_growth = self.max_snake_length - len(self.game.snake)
 
-    def _get_state(self):
-        state = np.zeros((4, self.game.board_size * self.scale, self.game.board_size * self.scale), dtype=np.uint8)  # 4个通道
-        # 颜色值（使用0-255范围的整数表示颜色）
-        snake_body_value = [0, 0, 255]  # 蓝色
-        food_value = [0, 255, 0]  # 绿色
-        snake_head_value = [255, 0, 0]  # 红色
-
-        for x in range(self.game.board_size):
-            for y in range(self.game.board_size):
-                value = self.game.play_ground[x][y]
-                if value == 1:  # 蛇身
-                    for i in range(3):
-                        state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] = snake_body_value[i]
-                elif value == 2:  # 食物
-                    for i in range(3):
-                        state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] = food_value[i]
-                elif value == 3:  # 蛇头
-                    for i in range(3):
-                        state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] = snake_head_value[i]
-
-        # 添加方向信息
-        direction = self.game.directions.index(self.game.direction)
-        state[3, :, :] = direction * 85  # 将方向索引映射到0-255范围
-
-        # 对蛇身添加渐变颜色，模拟颜色渐变效果
-        for index, (x, y, _) in enumerate(self.game.snake):
-            gradient_value = int((index + 1) / len(self.game.snake) * 255)
-            for i in range(3):
-                state[i, x*self.scale:(x+1)*self.scale, y*self.scale:(y+1)*self.scale] *= gradient_value
-        return state
+    def _get_obs(self):
+        return self.game.get_obs()
     
     def reset(self):
         self.game.reset()
-        state = self._get_state()
-        return state
+        obs = self._get_obs()
+        return obs
     
     def step(self, action):
         self.game.direction = self.game.directions[action]
-        terminated,reward,state = self.game.step()
-        self.game.update_play_ground()
+        terminated,state = self.game.step()
         state_dic = {
             0: 'the head leave the food',
             1: 'this head approch the food',
             2: 'hit wall',
             3: 'collied self',
-            4: 'eat food'
+            4: 'eat food',
+            5: 'Victory'
         }
-        observation = self._get_state()
+        snake_length = len(self.game.snake)
+        observation = self._get_obs()
         info = {
-            'snake_length' : len(self.game.snake),
+            'snake_length' : snake_length,
             'step_count' : self.game.step_count,
             'game_loop': self.game.game_loop,
             'step_state': state_dic[state]
         }
+        reward = 0.0
+        if state == 0:
+            reward = - 1 / snake_length
+        elif state == 1:
+            reward = 1 / snake_length
+        elif state == 2 or state == 3:
+            reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
+        elif self == 4:
+            reward = snake_length / self.max_snake_length
+        reward = reward * 0.1
         return observation, reward, terminated, info
     
     def render(self, mode='human', **kwargs):
-        current_time = time.time()
-        if current_time - self.last_render_time >= self.render_delay:
-            self.game.draw()
-            self.last_render_time = current_time
+        self.game.draw()
     
     def close(self):
         self.game.close()
