@@ -20,9 +20,11 @@ elif torch.backends.mps.is_available():
     device = 'mps'
 
 
-def make_env(seed=0):
+
+
+def make_env(seed=0,board_size=10):
     def _init():
-        env = SnakeEnv(seed=seed,board_size=12, silent_mode=True)
+        env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True)
         env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
         env.seed(seed)
@@ -37,12 +39,20 @@ class RenderCallback(BaseCallback):
         self.training_env.render()
         return True
 
+def linear_schedule(initial_value, final_value=0.0):
 
-# 创建环境并使用 DummyVecEnv 包装环境
-env = DummyVecEnv([make_env(22)])
+    if isinstance(initial_value, str):
+        initial_value = float(initial_value)
+        final_value = float(final_value)
+        assert (initial_value > 0.0)
+
+    def scheduler(progress):
+        return final_value + progress * (initial_value - final_value)
+
+    return scheduler
 
 
-
+board_size = 12
 def main(render):
     env = DummyVecEnv([make_env(22)])
     model = MaskablePPO(
