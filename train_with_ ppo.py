@@ -72,7 +72,18 @@ def main(render):
     checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
     model.learn(total_timesteps=100000,callback=[checkpoint_callback,])
-    #model.save('pth/ppo_snake_early')
+    model.save('pth/ppo_snake_early')
+    env.close()
+
+def load(render):
+    env = DummyVecEnv([make_env(22)])
+    model = MaskablePPO.load("pth/ppo_snake_early.zip", env=env, device=device)
+    model.gamma=0.94
+    model.learning_rate = 0.0003
+    model.ent_coef = 0.01
+    render_callback = RenderCallback() if render else None
+    model.learn(total_timesteps=100000)
+    model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
