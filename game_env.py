@@ -18,7 +18,8 @@ class SnakeEnv(gym.Env):
         super().__init__()
         self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True)
         self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Box(low=0, high=255, shape= (3,self.game.board_size * self.game.scale+1, self.game.board_size * self.game.scale+1), dtype=np.uint8)
+        shape_size = self.game.board_size * self.game.scale+2*self.game.scale
+        self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_size, shape_size), dtype=np.uint8)
         self.max_snake_length = board_size ** 2
         self.max_growth = self.max_snake_length - len(self.game.snake)
 
@@ -43,14 +44,17 @@ class SnakeEnv(gym.Env):
             'step_state': SnakeEnv.state_dic[state]
         }
         reward = 0.0
+        if state == 2 or state == 3:
+            reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
+            reward = reward * 0.1
+            return observation, reward, terminated, info
         if state == 0:
-            reward = - 1 / snake_length
+            reward = - 0.5 / snake_length
         elif state == 1:
             reward = 1 / snake_length
-        elif state == 2 or state == 3:
-            reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
         elif self == 4:
             reward = snake_length / self.max_snake_length
+        reward += 0.1 #one step reward
         reward = reward * 0.1
         return observation, reward, terminated, info
     

@@ -69,10 +69,10 @@ def main(render):
         n_steps=2048,
         batch_size=512*8,
         n_epochs=4,
-        gamma=0.94,
+        gamma=0.8,
         learning_rate=lr_schedule,
         clip_range=clip_range_schedule,
-        ent_coef = 0.0,
+        ent_coef = 0.1,
         tensorboard_log="logs/"
     )
     checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
@@ -89,14 +89,14 @@ def load(render):
     lr_schedule = linear_schedule(5e-4, 2.5e-6)
     clip_range_schedule = linear_schedule(0.150, 0.025)
     model = MaskablePPO.load("pth/ppo_snake_early.zip", env=env, device=device)
-    # model.gamma=0.94
-    # model.learning_rate = lr_schedule
-    # model.clip_range = clip_range_schedule
-    # model.ent_coef = 0.00
+    model.gamma=0.8
+    model.learning_rate = lr_schedule
+    model.clip_range = clip_range_schedule
+    model.ent_coef = 0.1
     render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=1e7)
+    model.learn(total_timesteps=1e6)
     model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
-    main(False)
+    load(False)
