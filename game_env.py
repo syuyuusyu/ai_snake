@@ -6,11 +6,19 @@ from typing import Optional
 import math
 
 class SnakeEnv(gym.Env):
+    state_dic = {
+        0: 'the head leave the food',
+        1: 'this head approch the food',
+        2: 'hit wall',
+        3: 'collied self',
+        4: 'eat food',
+        5: 'Victory'
+    }
     def __init__(self, board_size=10, silent_mode=True, seed=0):
         super().__init__()
         self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True)
         self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Box(low=0, high=255, shape= (self.game.board_size * self.game.scale, self.game.board_size * self.game.scale,3), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=255, shape= (3,self.game.board_size * self.game.scale+1, self.game.board_size * self.game.scale+1), dtype=np.uint8)
         self.max_snake_length = board_size ** 2
         self.max_growth = self.max_snake_length - len(self.game.snake)
 
@@ -25,21 +33,14 @@ class SnakeEnv(gym.Env):
     def step(self, action):
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
-        state_dic = {
-            0: 'the head leave the food',
-            1: 'this head approch the food',
-            2: 'hit wall',
-            3: 'collied self',
-            4: 'eat food',
-            5: 'Victory'
-        }
+
         snake_length = len(self.game.snake)
         observation = self._get_obs()
         info = {
             'snake_length' : snake_length,
             'step_count' : self.game.step_count,
             'game_loop': self.game.game_loop,
-            'step_state': state_dic[state]
+            'step_state': SnakeEnv.state_dic[state]
         }
         reward = 0.0
         if state == 0:
