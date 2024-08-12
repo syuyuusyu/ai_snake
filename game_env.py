@@ -48,6 +48,7 @@ class SnakeEnv(gym.Env):
             reward = 1 / snake_length
         elif state == 2 or state == 3:
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
+            print(f'deach pantanly: {reward}')
         elif self == 4:
             reward = snake_length / self.max_snake_length
         reward = reward * 0.1
