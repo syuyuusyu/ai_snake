@@ -74,12 +74,15 @@ class SnakeGame:
     
     def get_obs(self):
         obs = self.get_play_ground()
+
         # 增加黑色边界
         obs_with_border = np.full((self.board_size + 2, self.board_size + 2, 3), 0, dtype=np.uint8)  # 初始化为全黑色
         obs_with_border[1:-1, 1:-1, :] = obs  # 在黑色背景中嵌入原始的游戏画面
+
         # 放大图像
         obs_with_border = np.repeat(np.repeat(obs_with_border, self.scale, axis=0), self.scale, axis=1)
-        # 转置为 (3, w+1, h+1) 格式
+        
+        # 转置为 (3, w+2*self.scale, h+2*self.scale) 格式
         obs_with_border = np.transpose(obs_with_border, (2, 0, 1))
         return obs_with_border
     
