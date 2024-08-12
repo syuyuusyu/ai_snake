@@ -84,7 +84,7 @@ class SnakeGame:
     def get_obs(self):
         obs = self.get_play_ground()
         obs = np.repeat(np.repeat(obs,self.scale,axis=0),self.scale, axis=1)
-        obs = np.transpose(obs,(2,0,1))
+        #obs = np.transpose(obs,(2,0,1))
         return obs
     
     def draw(self):

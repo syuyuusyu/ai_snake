@@ -57,8 +57,8 @@ board_size = 12
 def main(render):
     seed_set = set()
     while len(seed_set) < 32:
-        seed_set.add(random.randint(0,1e7))
-    env = DummyVecEnv([make_env(seed) for seed in seed_set])
+        seed_set.add(random.randint(0,1e5))
+    env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
     lr_schedule = linear_schedule(5e-4, 2.5e-6)
     clip_range_schedule = linear_schedule(0.150, 0.025) 
     model = MaskablePPO(
@@ -77,7 +77,7 @@ def main(render):
     )
     checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=1e7)
+    model.learn(total_timesteps=1e6)
     model.save('pth/ppo_snake_early')
     env.close()
 
@@ -85,7 +85,7 @@ def load(render):
     seed_set = set()
     while len(seed_set) < 32:
         seed_set.add(random.randint(0,1e7))
-    env = DummyVecEnv([make_env(seed) for seed in seed_set])
+    env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
     lr_schedule = linear_schedule(5e-4, 2.5e-6)
     clip_range_schedule = linear_schedule(0.150, 0.025)
     model = MaskablePPO.load("pth/ppo_snake_early.zip", env=env, device=device)
@@ -99,4 +99,4 @@ def load(render):
     env.close()
 
 if __name__ == '__main__':
-    load(False)
+    main(False)

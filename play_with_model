@@ -15,7 +15,7 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
-board_size = 10
+board_size = 12
 
 def make_env(seed=0,board_size=12):
     def _init():

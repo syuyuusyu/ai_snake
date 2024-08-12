@@ -10,7 +10,7 @@ class SnakeEnv(gym.Env):
         super().__init__()
         self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True)
         self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Box(low=0, high=255, shape=(3, self.game.board_size * self.game.scale, self.game.board_size * self.game.scale), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=255, shape= (self.game.board_size * self.game.scale, self.game.board_size * self.game.scale,3), dtype=np.uint8)
         self.max_snake_length = board_size ** 2
         self.max_growth = self.max_snake_length - len(self.game.snake)
 
@@ -48,7 +48,6 @@ class SnakeEnv(gym.Env):
             reward = 1 / snake_length
         elif state == 2 or state == 3:
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
-            print(f'deach pantanly: {reward}')
         elif self == 4:
             reward = snake_length / self.max_snake_length
         reward = reward * 0.1
