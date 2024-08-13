@@ -23,11 +23,14 @@ class SnakeEnv(gym.Env):
         self.max_snake_length = board_size ** 2
         self.max_growth = self.max_snake_length - len(self.game.snake)
         self.eat_count = 0
+        self.beast_snake_length = 0
 
     def _get_obs(self):
         return self.game.get_obs()
     
     def reset(self):
+        self.beast_snake_length = max(self.beast_snake_length,len(self.game.snake))
+        print(f'beast_snake_length:{self.beast_snake_length}')
         self.game.reset()
         obs = self._get_obs()
         self.eat_count = 0
@@ -51,7 +54,7 @@ class SnakeEnv(gym.Env):
             print(f'without eat in {self.eat_count} receive penalty')
             reward = -10
             #reward = reward * 0.1
-            return observation, reward, terminated, info
+            return observation, reward, True, info
         if state == 2 or state == 3:
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             reward = reward * 0.1
