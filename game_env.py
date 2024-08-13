@@ -37,6 +37,9 @@ class SnakeEnv(gym.Env):
         return obs
     
     def step(self, action):
+        p_action =  self.game.directions.index(self.game.direction)
+        if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
+            print('back fward')
         self.eat_count += 1
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
@@ -79,12 +82,8 @@ class SnakeEnv(gym.Env):
     def mask_fn(self):
         game = self.game
         mask = [1] * self.action_space.n
-        if game.direction == 'left':
-            mask[3] = 0  # 禁止向右移动
-        elif game.direction == 'right':
-            mask[2] = 0  # 禁止向左移动
-        elif game.direction == 'up':
-            mask[1] = 0  # 禁止向下移动
-        elif game.direction == 'down':
-            mask[0] = 0  # 禁止向上移动
-        return mask
+        #directions = ['up','down','left','right']
+        arr = ['down','up','right','left']
+        mask[arr.index(game.direction)] = 0
+        #return mask
+        return np.array([1, 1, 1, 1], dtype=np.uint8)
