@@ -192,7 +192,6 @@ class SnakeGame:
                 if self.model is not None:
                     action, _ = self.model.predict(self.get_obs(), deterministic=True)
                     self.direction = self.directions[action]
-                    print(self.direction)
                 self.step()
                 self.draw()
             self.display_count = (self.display_count + 1) % self.display_intial

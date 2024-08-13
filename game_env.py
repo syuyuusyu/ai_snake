@@ -49,15 +49,15 @@ class SnakeEnv(gym.Env):
         reward = 0.0
         if self.eat_count == self.max_snake_length:
             print(f'without eat in {self.eat_count} receive penalty')
-            reward = -10 / snake_length
-            reward = reward * 0.1
+            reward = -10
+            #reward = reward * 0.1
             return observation, reward, terminated, info
         if state == 2 or state == 3:
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             reward = reward * 0.1
             return observation, reward, terminated, info
         if state == 0:
-            reward = - 0.5 / snake_length
+            reward = - 1 / snake_length
         elif state == 1:
             reward = 1 / snake_length
         elif self == 4:
