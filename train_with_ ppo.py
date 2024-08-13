@@ -69,15 +69,15 @@ def main(render):
         n_steps=2048,
         batch_size=512*8,
         n_epochs=4,
-        gamma=0.8,
+        gamma=0.9,
         learning_rate=lr_schedule,
         clip_range=clip_range_schedule,
-        ent_coef = 0.1,
+        ent_coef = 0.01,
         tensorboard_log="logs/"
     )
     checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
     render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=1e8)
+    model.learn(total_timesteps=1e6)
     model.save('pth/ppo_snake_early')
     env.close()
 
