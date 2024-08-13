@@ -22,6 +22,7 @@ class SnakeEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_size, shape_size), dtype=np.uint8)
         self.max_snake_length = board_size ** 2
         self.max_growth = self.max_snake_length - len(self.game.snake)
+        self.eat_count = 0
 
     def _get_obs(self):
         return self.game.get_obs()
@@ -29,9 +30,11 @@ class SnakeEnv(gym.Env):
     def reset(self):
         self.game.reset()
         obs = self._get_obs()
+        self.eat_count = 0
         return obs
     
     def step(self, action):
+        self.eat_count += 1
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
 
@@ -44,6 +47,11 @@ class SnakeEnv(gym.Env):
             'step_state': SnakeEnv.state_dic[state]
         }
         reward = 0.0
+        if self.eat_count == self.max_snake_length:
+            print(f'without eat in {self.eat_count} receive penalty')
+            reward = -10/snake_length
+            reward = reward * 0.1
+            return observation, reward, terminated, info
         if state == 2 or state == 3:
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             reward = reward * 0.1
@@ -53,6 +61,7 @@ class SnakeEnv(gym.Env):
         elif state == 1:
             reward = 1 / snake_length
         elif self == 4:
+            self.eat_count = 0
             reward = snake_length / self.max_snake_length
         reward += 0.1 #one step reward
         reward = reward * 0.1
