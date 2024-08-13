@@ -28,10 +28,10 @@ def make_env(seed=0,board_size=12):
 seed_set = set()
 while len(seed_set) < 32:
     seed_set.add(random.randint(0,1e7))
-env = DummyVecEnv([make_env(22)])
-
+env = DummyVecEnv([make_env(random.randint(0,1e7),board_size)])
 
 model = MaskablePPO.load('pth/ppo_snake_early.zip', env=env, device=device)
+#print(model.observation_space.shape)
 
 if __name__ == "__main__":  
     game = SnakeGame(board_size=board_size,silent_mode=False,train_mode=True,model=model)

@@ -12,6 +12,8 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor,SubprocVecE
 from stable_baselines3.common.env_checker import check_env
 import numpy as np
 
+print(torch.__version__)
+
 # 导入你定义的 SnakeEnv 类
 from game_env import SnakeEnv
 
@@ -21,6 +23,7 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
+<<<<<<< HEAD
 print(device)
 
 def make_env(seed=0):
@@ -44,3 +47,5 @@ board_size = 16
 scale = max(1, (32 + board_size - 1) // board_size)  # 确保 board_size * scale >= 32
 print(1e7)
 
+=======
+>>>>>>> 1c6f17bb3bf8a1b9b28c04b88b5b72c923943d06
