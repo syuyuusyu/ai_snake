@@ -49,7 +49,7 @@ class SnakeEnv(gym.Env):
         reward = 0.0
         if self.eat_count == self.max_snake_length:
             print(f'without eat in {self.eat_count} receive penalty')
-            reward = -10/snake_length
+            reward = -10 / snake_length
             reward = reward * 0.1
             return observation, reward, terminated, info
         if state == 2 or state == 3:
@@ -84,3 +84,4 @@ class SnakeEnv(gym.Env):
             mask[1] = 0  # 禁止向下移动
         elif game.direction == 'down':
             mask[0] = 0  # 禁止向上移动
+        return mask
