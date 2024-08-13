@@ -23,3 +23,6 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
+a = [1,2,3,4]
+
+print(a.index(1))
