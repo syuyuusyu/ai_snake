@@ -67,7 +67,6 @@ class SnakeEnv(gym.Env):
     def mask_fn(self):
         game = self.game
         mask = [1] * self.action_space.n
-
         if game.direction == 'left':
             mask[3] = 0  # 禁止向右移动
         elif game.direction == 'right':
@@ -76,5 +75,3 @@ class SnakeEnv(gym.Env):
             mask[1] = 0  # 禁止向下移动
         elif game.direction == 'down':
             mask[0] = 0  # 禁止向上移动
-            
-        return mask
