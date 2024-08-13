@@ -43,3 +43,4 @@ env = DummyVecEnv([make_env(22)])
 board_size = 16
 scale = max(1, (32 + board_size - 1) // board_size)  # 确保 board_size * scale >= 32
 print(1e7)
+
