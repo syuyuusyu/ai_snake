@@ -92,7 +92,7 @@ def load(render):
     model.gamma=0.94
     #model.learning_rate = lr_schedule
     #model.clip_range = clip_range_schedule
-    model.ent_coef = 0.01
+    model.ent_coef = 0.00
     render_callback = RenderCallback() if render else None
     model.learn(total_timesteps=1e7)
     model.save('pth/ppo_snake_early')
