@@ -13,15 +13,6 @@ class SnakeGame:
     red = (213, 50, 80)
     green = (0, 255, 0)
     blue = (50, 153, 213)
-    color_dic = {
-        1 : blue,
-        2 : green,
-        3 : blue,
-        4 : blue,
-        5 : blue,
-        6 : blue,
-        7 : blue,
-    }
 
     def __init__(self,board_size = 10,silent_mode = True,seed = 0,train_mode = False,model = None) -> None:
         self.board_size = board_size
@@ -67,25 +58,33 @@ class SnakeGame:
     
     
     def get_play_ground(self):
-        obs = np.full((self.board_size,self.board_size,3),255,dtype=np.uint8)
+        play_ground = np.full((self.board_size,self.board_size,3),255,dtype=np.uint8)
         snake_body_value = [[0, 0, v] for v in np.linspace(100,255,len(self.snake),dtype=np.uint8 ) ] # 蓝色
-        food_value = [0, 255, 0]  # 绿色
-        snake_head_value = [255, 0, 0]  # 红色
-        obs[tuple(self.food[:2])] = food_value
+        food_value = SnakeGame.green  # 绿色
+        snake_head_value = SnakeGame.red  # 红色
+        play_ground[self.food] = food_value
         for index, (x,y) in enumerate(self.snake):
             if index ==0:
-                obs[(x,y)] = snake_head_value
+                play_ground[(x,y)] = snake_head_value
             else:
-                obs[(x,y)] = snake_body_value[index]
+                play_ground[(x,y)] = snake_body_value[index]
         #obs = np.repeat(np.repeat(obs,self.scale,axis=0),self.scale, axis=1)
         #obs = np.transpose(obs,(1,0,2))
-        return obs
+        return play_ground
     
     def get_obs(self):
         obs = self.get_play_ground()
-        obs = np.repeat(np.repeat(obs,self.scale,axis=0),self.scale, axis=1)
-        obs = np.transpose(obs,(2,0,1))
-        return obs
+
+        # 增加黑色边界
+        obs_with_border = np.full((self.board_size + 2, self.board_size + 2, 3), 0, dtype=np.uint8)  # 初始化为全黑色
+        obs_with_border[1:-1, 1:-1, :] = obs  # 在黑色背景中嵌入原始的游戏画面
+
+        # 放大图像
+        obs_with_border = np.repeat(np.repeat(obs_with_border, self.scale, axis=0), self.scale, axis=1)
+        
+        # 转置为 (3, w+2*self.scale, h+2*self.scale) 格式
+        obs_with_border = np.transpose(obs_with_border, (2, 0, 1))
+        return obs_with_border
     
     def draw(self):
         if self.silent_mode:
@@ -122,6 +121,7 @@ class SnakeGame:
                                     2: hit wall
                                     3: collied self
                                     4: eat food
+                                    5: Victory
         """
         x_origin,y_origin = self.snake[0]
         step_point = [[0,-1],[0,1],[-1,0],[1,0]]
@@ -131,7 +131,7 @@ class SnakeGame:
         if (x,y) == self.food:
             self.snake.appendleft((x,y))
             if len(self.snake) == self.board_size**2:
-                #win the game!!!
+                #Victory!!!
                 return (True,5) 
             self.food = self.create_food()
             #print('eat food')
