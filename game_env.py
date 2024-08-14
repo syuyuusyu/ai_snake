@@ -22,25 +22,40 @@ class SnakeEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_size, shape_size), dtype=np.uint8)
         self.max_snake_length = board_size ** 2
         self.max_growth = self.max_snake_length - len(self.game.snake)
-        self.eat_count = 0
+        self.step_count = 0
+
         self.beast_snake_length = 0
+        self.back_forward_count = 0
+        self.hit_wall_count = 0
+        self.collide_self_count = 0
+        self.repeat_count = 0
+        self.victory_count = 0
+        self.is_new_rollout = False
+
 
     def _get_obs(self):
         return self.game.get_obs()
     
     def reset(self):
         self.beast_snake_length = max(self.beast_snake_length,len(self.game.snake))
-        print(f'beast_snake_length:{self.beast_snake_length}')
         self.game.reset()
         obs = self._get_obs()
-        self.eat_count = 0
+        self.step_count = 0
         return obs
     
     def step(self, action):
+        if self.is_new_rollout:
+            self.back_forward_count = 0
+            self.hit_wall_count = 0
+            self.collide_self_count = 0
+            self.repeat_count = 0
+            self.victory_count = 0
+            self.is_new_rollout = False
+
         p_action =  self.game.directions.index(self.game.direction)
         if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
-            print('back fward')
-        self.eat_count += 1
+            self.back_forward_count += 1
+        self.step_count += 1
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
 
@@ -53,12 +68,21 @@ class SnakeEnv(gym.Env):
             'step_state': SnakeEnv.state_dic[state]
         }
         reward = 0.0
-        if self.eat_count == self.max_snake_length:
-            print(f'without eat in {self.eat_count} receive penalty')
+    
+        if self.step_count == self.max_snake_length:
+            self.repeat_count += 1
             reward = -10
             #reward = reward * 0.1
             return observation, reward, True, info
+        if state ==5:
+            reward = 100
+            self.victory_count += 1
+            return observation, reward, True, info
         if state == 2 or state == 3:
+            if state == 2:
+                self.hit_wall_count += 1
+            if state == 3:
+                self.collide_self_count += 1
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             reward = reward * 0.1
             return observation, reward, terminated, info
@@ -67,7 +91,7 @@ class SnakeEnv(gym.Env):
         elif state == 1:
             reward = 1 / snake_length
         elif self == 4:
-            self.eat_count = 0
+            self.step_count = 0
             reward = snake_length / self.max_snake_length
         reward += 0.1 #one step reward
         reward = reward * 0.1
