@@ -26,18 +26,24 @@ elif torch.backends.mps.is_available():
 def make_env(seed=0,board_size=10):
     def _init():
         env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True)
-        env = ActionMasker(env, None)
+        env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
         env.seed(seed)
         return env
     return _init
 
-class RenderCallback(BaseCallback):
+class MonitorCallback(BaseCallback):
     def __init__(self, verbose=0):
-        super(RenderCallback, self).__init__(verbose)
-
+        super(MonitorCallback, self).__init__(verbose)
+        self.att = ['beast_snake_length','back_forward_count','hit_wall_count','collide_self_count','repeat_count','victory_count']
+    def _on_rollout_start(self) -> None:
+        for name in self.att:
+            values = self.training_env.get_attr(name)
+            mean_value = np.mean(values)
+            print(f'mean_{name}: {mean_value}')
+        self.training_env.set_attr('is_new_rollout',True)
+    
     def _on_step(self) -> bool:
-        self.training_env.render()
         return True
 
 def linear_schedule(initial_value, final_value=0.0):
@@ -54,7 +60,7 @@ def linear_schedule(initial_value, final_value=0.0):
 
 
 board_size = 12
-def main(render):
+def main():
     seed_set = set()
     while len(seed_set) < 32:
         seed_set.add(random.randint(0,1e5))
@@ -75,13 +81,13 @@ def main(render):
         ent_coef = 0.01,
         tensorboard_log="logs/"
     )
-    checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
-    render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=1e6)
+    #checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
+    monitor_callback = MonitorCallback() 
+    model.learn(total_timesteps=1e6,callback=[monitor_callback])
     model.save('pth/ppo_snake_early')
     env.close()
 
-def load(render):
+def load():
     seed_set = set()
     while len(seed_set) < 32:
         seed_set.add(random.randint(0,1e7))
@@ -93,10 +99,10 @@ def load(render):
     #model.learning_rate = lr_schedule
     #model.clip_range = clip_range_schedule
     model.ent_coef = 0.00
-    render_callback = RenderCallback() if render else None
-    model.learn(total_timesteps=1e7)
+    info_callback = MonitorCallback() 
+    model.learn(total_timesteps=1e7,callback=[info_callback])
     model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
-    load(False)
+    load()
