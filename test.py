@@ -11,6 +11,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor,SubprocVecEnv
 from stable_baselines3.common.env_checker import check_env
 import numpy as np
+import math
 
 print(torch.__version__)
 
@@ -23,6 +24,6 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
-a = [1,2,3,4]
+a = -math.pow(140, (100) /140)
 
-print(a.index(1))
+print(a)
