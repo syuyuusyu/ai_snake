@@ -46,15 +46,16 @@ class MonitorCallback(BaseCallback):
     def _on_step(self) -> bool:
         return True
 
-def linear_schedule(initial_value, final_value=0.0):
-
-    if isinstance(initial_value, str):
-        initial_value = float(initial_value)
-        final_value = float(final_value)
-        assert (initial_value > 0.0)
+def schedule_fn(initial_value, final_value=0.0, schedule_type='linear'):
 
     def scheduler(progress):
-        return final_value + progress * (initial_value - final_value)
+        progress = min(max(progress, 0.0), 1.0)
+        if schedule_type == 'linear':
+            return final_value + progress * (initial_value - final_value)
+        elif schedule_type == 'exponential':
+            return initial_value * (final_value / initial_value) ** progress
+        else:
+            raise ValueError("Unsupported schedule type")
 
     return scheduler
 
@@ -65,8 +66,8 @@ def main():
     while len(seed_set) < 32:
         seed_set.add(random.randint(0,1e5))
     env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
-    lr_schedule = linear_schedule(5e-4, 2.5e-6)
-    clip_range_schedule = linear_schedule(0.150, 0.025) 
+    lr_schedule = schedule_fn(5e-4, 2.5e-6)
+    clip_range_schedule = schedule_fn(0.150, 0.025) 
     model = MaskablePPO(
         "CnnPolicy",
         env,
@@ -92,13 +93,13 @@ def load():
     while len(seed_set) < 32:
         seed_set.add(random.randint(0,1e7))
     env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
-    lr_schedule = linear_schedule(5e-4, 2.5e-6)
-    clip_range_schedule = linear_schedule(0.150, 0.025)
+    lr_schedule = schedule_fn(5e-4, 2.5e-6)
+    clip_range_schedule = schedule_fn(0.150, 0.025)
     model = MaskablePPO.load("pth/ppo_snake_early.zip", env=env, device=device)
     model.gamma=0.94
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
-    model.ent_coef = 0.01
+    model.ent_coef = 0.00
     info_callback = MonitorCallback() 
     model.learn(total_timesteps=1e8,callback=[info_callback])
     model.save('pth/ppo_snake_early')
