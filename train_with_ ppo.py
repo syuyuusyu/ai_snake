@@ -99,11 +99,11 @@ def load():
     model.gamma=0.94
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
-    model.ent_coef = 0.00
+    model.ent_coef = 0.01
     info_callback = MonitorCallback() 
     model.learn(total_timesteps=1e8,callback=[info_callback])
     model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
-    load()
+    main()
