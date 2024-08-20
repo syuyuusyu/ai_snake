@@ -42,6 +42,8 @@ class MonitorCallback(BaseCallback):
             mean_value = np.mean(values)
             print(f'mean_{name}: {mean_value}')
         self.training_env.set_attr('is_new_rollout',True)
+        for name in self.att if name != 'is_new_rollout' and name != 'beast_nake_length':
+            self.training_env.set_attr(name,0)
     
     def _on_step(self) -> bool:
         return True
@@ -96,14 +98,14 @@ def load():
     lr_schedule = schedule_fn(5e-4, 2.5e-6)
     clip_range_schedule = schedule_fn(0.150, 0.025)
     model = MaskablePPO.load("pth/ppo_snake_early.zip", env=env, device=device)
-    model.gamma=0.94
+    model.gamma=0.85
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
-    model.ent_coef = 0.01
+    model.ent_coef = 0.05
     info_callback = MonitorCallback() 
     model.learn(total_timesteps=1e8,callback=[info_callback])
     model.save('pth/ppo_snake_early')
     env.close()
 
 if __name__ == '__main__':
-    main()
+    load()

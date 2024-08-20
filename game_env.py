@@ -69,7 +69,7 @@ class SnakeEnv(gym.Env):
         }
         reward = 0.0
     
-        if self.step_count == self.max_snake_length * 100:
+        if self.step_count == self.max_snake_length * 50:
             #without eat food in step_count
             self.repeat_count += 1
             reward = -2 * self.repeat_count
