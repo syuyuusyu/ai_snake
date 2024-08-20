@@ -69,10 +69,10 @@ class SnakeEnv(gym.Env):
         }
         reward = 0.0
     
-        if self.step_count == self.max_snake_length * 4:
+        if self.step_count == self.max_snake_length * 100:
             #without eat food in step_count
             self.repeat_count += 1
-            reward = -10 * self.repeat_count
+            reward = -2 * self.repeat_count
             reward = reward * 0.1
             return observation, reward, True, info
         if state ==5:
@@ -86,7 +86,6 @@ class SnakeEnv(gym.Env):
                 self.collide_self_count += 1
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             reward = reward * 0.1
-            print(f'dead reward {self.max_growth} {self.max_snake_length - snake_length} {self.max_growth} {reward}')
             return observation, reward, terminated, info
         if state == 0:
             reward = - 1 / snake_length
@@ -95,7 +94,7 @@ class SnakeEnv(gym.Env):
         elif self == 4:
             self.step_count = 0
             reward = snake_length / self.max_snake_length
-        #reward += 0.1 #one step reward
+        reward += 0.1 #one step reward
         reward = reward * 0.1
         return observation, reward, terminated, info
     
