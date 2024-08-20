@@ -31,6 +31,21 @@ class SnakeEnv(gym.Env):
         self.repeat_count = 0
         self.victory_count = 0
         self.is_new_rollout = False
+    
+    def get_train_info(self):
+        return {
+            'beast_snake_length': self.beast_snake_length,
+            'back_forward_count': self.back_forward_count,
+            'hit_wall_count': self.hit_wall_count,
+            'collide_self_count': self.collide_self_count,
+            'repeat_count': self.repeat_count,
+            'victory_count': self.victory_count,
+            'rollout_snake_length': len(self.game.snake),
+        }
+    
+    def reset_rollout(self):
+        self.is_new_rollout = True
+        
 
 
     def _get_obs(self):

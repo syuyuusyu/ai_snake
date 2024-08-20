@@ -35,16 +35,38 @@ def make_env(seed=0,board_size=10):
 class MonitorCallback(BaseCallback):
     def __init__(self, verbose=0):
         super(MonitorCallback, self).__init__(verbose)
-        self.att = ['beast_snake_length','back_forward_count','hit_wall_count','collide_self_count','repeat_count','victory_count']
+        self.att = ['beast_snake_length','back_forward_count','hit_wall_count','collide_self_count','repeat_count','victory_count','cuttent_snake_length']
     def _on_rollout_start(self) -> None:
-        for name in self.att:
-            values = self.training_env.get_attr(name)
-            mean_value = np.mean(values)
-            print(f'mean_{name}: {mean_value}')
-        self.training_env.set_attr('is_new_rollout',True)
-        for name in self.att if name != 'is_new_rollout' and name != 'beast_nake_length':
-            self.training_env.set_attr(name,0)
-    
+        train_info_list = self.training_env.env_method('get_train_info')
+
+        # 初始化计数器
+        average_info = {
+            'beast_snake_length': 0.0,
+            'back_forward_count': 0.0,
+            'hit_wall_count': 0.0,
+            'collide_self_count': 0.0,
+            'repeat_count': 0.0,
+            'victory_count': 0.0,
+            'rollout_snake_length': 0.0,
+        }
+
+        # 环境实例的数量
+        num_envs = len(train_info_list)
+
+        # 累加每个环境实例的值
+        for train_info in train_info_list:
+            for key in average_info.keys():
+                average_info[key] += train_info[key]
+
+        # 计算平均值
+        for key in average_info.keys():
+            average_info[key] /= num_envs
+
+        # 打印结果
+        for key, value in average_info.items():
+            print(f'Average {key}: {value}')
+        self.training_env.env_method('reset_rollout')
+
     def _on_step(self) -> bool:
         return True
 
