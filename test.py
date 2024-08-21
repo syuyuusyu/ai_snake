@@ -27,3 +27,15 @@ elif torch.backends.mps.is_available():
 a = -math.pow(140, (100) /140)
 
 print(a)
+
+repeat_prossibity = np.full((12,12),0,dtype=np.int8)
+repeat_rate = 8
+max_step = 12*12
+step_count = 0
+repeat_count = 0
+if step_count >= max_step * repeat_rate/2:
+    #start repeat,record repeat_prossibity
+    pass
+if step_count >= max_step * repeat_rate:
+    #calculate panlaty accroding to repeat_prossibity
+    pass
