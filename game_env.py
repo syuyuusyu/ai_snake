@@ -68,8 +68,6 @@ class SnakeEnv(gym.Env):
             self.is_new_rollout = False
 
         p_action =  self.game.directions.index(self.game.direction)
-        if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
-            self.back_forward_count += 1
         self.step_count += 1
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
@@ -83,8 +81,16 @@ class SnakeEnv(gym.Env):
             'step_state': SnakeEnv.state_dic[state]
         }
         reward = 0.0
+        if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
+            self.back_forward_count += 1
+            reward = -14
+            return observation, reward, True, info
+        repeat_rate = 8
+        if self.step_count == self.max_snake_length * repeat_rate/2:
+            pass
+
     
-        if self.step_count == self.max_snake_length * 50:
+        if self.step_count == self.max_snake_length * 8:
             #without eat food in step_count
             self.repeat_count += 1
             reward = -2 * self.repeat_count
@@ -103,13 +109,13 @@ class SnakeEnv(gym.Env):
             reward = reward * 0.1
             return observation, reward, terminated, info
         if state == 0:
-            reward = - 1 / snake_length
+            reward = - 1.1 / snake_length
         elif state == 1:
             reward = 1 / snake_length
         elif self == 4:
             self.step_count = 0
             reward = snake_length / self.max_snake_length
-        reward += 0.1 #one step reward
+        #reward += 0.1 #one step reward
         reward = reward * 0.1
         return observation, reward, terminated, info
     
@@ -125,5 +131,5 @@ class SnakeEnv(gym.Env):
         #directions = ['up','down','left','right']
         arr = ['down','up','right','left']
         mask[arr.index(game.direction)] = 0
-        return mask
-        #return np.array([1, 1, 1, 1], dtype=np.uint8)
+        #return mask
+        return np.array([1, 1, 1, 1], dtype=np.uint8)
