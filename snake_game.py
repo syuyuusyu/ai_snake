@@ -38,7 +38,7 @@ class SnakeGame:
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
-            self.display_intial = 10
+            self.display_intial = 1
             self.display_count = 0
             if not train_mode:
                 self.font_style = pygame.font.SysFont(None, 50)
@@ -190,8 +190,15 @@ class SnakeGame:
                                 self.direction = 'down'
             if self.display_count == 0:
                 if self.model is not None:
+                    p_direction = self.direction
                     action, _ = self.model.predict(self.get_obs(), deterministic=True)
+                    
                     self.direction = self.directions[action]
+                    if (p_direction == 'left' and self.direction == 'right') \
+                        or (p_direction == 'right' and self.direction == 'left') \
+                        or (p_direction == 'up' and self.direction == 'down') \
+                        or (p_direction == 'down' and self.direction == 'up'):
+                        print(f'---back_forawrd {p_direction} {self.direction}') 
                 self.step()
                 self.draw()
             self.display_count = (self.display_count + 1) % self.display_intial
