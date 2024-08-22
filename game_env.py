@@ -31,6 +31,7 @@ class SnakeEnv(gym.Env):
         self.repeat_count = 0
         self.victory_count = 0
         self.is_new_rollout = False
+        self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.uint8)
     
     def get_train_info(self):
         return {
@@ -46,8 +47,6 @@ class SnakeEnv(gym.Env):
     def reset_rollout(self):
         self.is_new_rollout = True
         
-
-
     def _get_obs(self):
         return self.game.get_obs()
     
@@ -65,6 +64,7 @@ class SnakeEnv(gym.Env):
             self.collide_self_count = 0
             self.repeat_count = 0
             self.victory_count = 0
+            self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.uint8)
             self.is_new_rollout = False
 
         p_action =  self.game.directions.index(self.game.direction)
@@ -86,11 +86,13 @@ class SnakeEnv(gym.Env):
             reward = -14
             return observation, reward, True, info
         repeat_rate = 8
-        if self.step_count == self.max_snake_length * repeat_rate/2:
-            pass
+        repeat_panlity = 0
+        if self.step_count >= self.max_snake_length:
+            x,y = self.game.snake[0]
+            self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.02
+            repeat_panlity = self.repeat_prossibility[x][y]
 
-    
-        if self.step_count == self.max_snake_length * 8:
+        if self.step_count == self.max_snake_length * repeat_rate:
             #without eat food in step_count
             self.repeat_count += 1
             reward = -2 * self.repeat_count
@@ -117,7 +119,7 @@ class SnakeEnv(gym.Env):
             reward = snake_length / self.max_snake_length
         #reward += 0.1 #one step reward
         reward = reward * 0.1
-        return observation, reward, terminated, info
+        return observation, reward+repeat_panlity, terminated, info
     
     def render(self, mode='human', **kwargs):
         self.game.draw()
