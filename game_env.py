@@ -31,7 +31,7 @@ class SnakeEnv(gym.Env):
         self.repeat_count = 0
         self.victory_count = 0
         self.is_new_rollout = False
-        self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.uint8)
+        self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.float16)
     
     def get_train_info(self):
         return {
@@ -57,6 +57,24 @@ class SnakeEnv(gym.Env):
         self.step_count = 0
         return obs
     
+    def calculate_penalty_factor(self,x, y, board_size):
+        # 棋盘中心点
+        cx, cy = board_size // 2, board_size // 2
+
+        # 计算欧几里得距离
+        distance = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+
+        # 计算最大可能距离（从中心到角落）
+        max_distance = np.sqrt((cx) ** 2 + (cy) ** 2)
+
+        # 归一化距离 (得到的值在0到1之间，中心为0，边缘为1)
+        normalized_distance = distance / max_distance
+
+        # 惩罚调整系数
+        penalty_factor = 1 + normalized_distance  # 中心为1，边缘最大为2
+
+        return penalty_factor
+   
     def step(self, action):
         if self.is_new_rollout:
             self.back_forward_count = 0
@@ -64,7 +82,7 @@ class SnakeEnv(gym.Env):
             self.collide_self_count = 0
             self.repeat_count = 0
             self.victory_count = 0
-            self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.uint8)
+            self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.float16)
             self.is_new_rollout = False
 
         p_action =  self.game.directions.index(self.game.direction)
@@ -86,18 +104,19 @@ class SnakeEnv(gym.Env):
             reward = -14
             return observation, reward, True, info
         repeat_rate = 8
-        repeat_panlity = 0
+        repeat_peanlity = 0
         if self.step_count >= self.max_snake_length:
             x,y = self.game.snake[0]
-            self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.02
-            repeat_panlity = self.repeat_prossibility[x][y]
+            penalty_factor = self.calculate_penalty_factor(x, y, self.game.board_size)
+            self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.001* penalty_factor
+            repeat_peanlity = self.repeat_prossibility[x][y]
 
         if self.step_count == self.max_snake_length * repeat_rate:
             #without eat food in step_count
             self.repeat_count += 1
             reward = -2 * self.repeat_count
             reward = reward * 0.1
-            return observation, reward, True, info
+            return observation, -14, True, info
         if state ==5:
             reward = 100
             self.victory_count += 1
@@ -119,7 +138,8 @@ class SnakeEnv(gym.Env):
             reward = snake_length / self.max_snake_length
         #reward += 0.1 #one step reward
         reward = reward * 0.1
-        return observation, reward+repeat_panlity, terminated, info
+        
+        return observation, reward+repeat_peanlity, terminated, info
     
     def render(self, mode='human', **kwargs):
         self.game.draw()
