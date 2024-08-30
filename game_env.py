@@ -76,7 +76,7 @@ class SnakeEnv(gym.Env):
         penalty_factor = 1 + normalized_distance  # 中心为1，边缘最大为2
 
         return penalty_factor
-   
+
     def step(self, action):
         if self.is_new_rollout:
             self.back_forward_count = 0
@@ -136,7 +136,7 @@ class SnakeEnv(gym.Env):
             reward = 100
             self.victory_count += 1
             return observation, reward, True, info
-          
+
         if state == 0:
             reward = reward - 1 / snake_length
         elif state == 1:
