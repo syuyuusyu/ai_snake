@@ -62,20 +62,20 @@ class SnakeEnv(gym.Env):
     def calculate_penalty_factor(self,x, y, board_size):
         # 棋盘中心点
         cx, cy = board_size // 2, board_size // 2
-
         # 计算欧几里得距离
         distance = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
-
         # 计算最大可能距离（从中心到角落）
         max_distance = np.sqrt((cx) ** 2 + (cy) ** 2)
-
         # 归一化距离 (得到的值在0到1之间，中心为0，边缘为1)
         normalized_distance = distance / max_distance
-
         # 惩罚调整系数
         penalty_factor = 1 + normalized_distance  # 中心为1，边缘最大为2
-
         return penalty_factor
+    
+    def is_food_on_edge(self)->bool:
+        x, y = self.game.food
+        max_index = self.game.board_size -1
+        return x == 0 or x == max_index or y == 0 or y == max_index
 
     def step(self, action):
         if self.is_new_rollout:
@@ -142,8 +142,9 @@ class SnakeEnv(gym.Env):
         elif state == 1:
             reward = reward + 1.01 / snake_length
         elif state == 4:
+            coefficient = 20 if self.is_food_on_edge() else 10
             self.step_count = 0
-            reward = reward + 10 * (snake_length / self.max_snake_length)
+            reward = reward + coefficient * (snake_length / self.max_snake_length)
         #reward += 0.1 #one step reward
         reward = reward * 0.1
         #print(reward,repeat_peanlity)
