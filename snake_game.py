@@ -95,7 +95,7 @@ class SnakeGame:
         pygame.display.flip()      
 
 
-    def create_food(self)->Tuple[int,int,int]:
+    def create_food(self)->Tuple[int,int]:
         # 生成所有可能的位置
         all_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size)}
         # 移除蛇占据的位置
