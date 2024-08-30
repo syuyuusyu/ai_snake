@@ -103,7 +103,7 @@ class SnakeEnv(gym.Env):
         }
         reward = 0.0
 
-        repeat_rate = 4
+        repeat_rate = 6
         repeat_peanlity = 0
         if self.step_count >= self.max_snake_length:
             x,y = self.game.snake[0]
@@ -111,12 +111,12 @@ class SnakeEnv(gym.Env):
             self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.001* penalty_factor
             repeat_peanlity = self.repeat_prossibility[x][y]
 
-        if self.step_count == self.max_snake_length * repeat_rate:
+        if self.step_count == self.max_snake_length * repeat_rate :
             #without eat food in step_count
             self.repeat_count += 1
-            reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
+            #reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             #reward = reward * 0.1
-            #terminated = True
+            terminated = True
 
         if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
             self.back_forward_count += 1
@@ -140,10 +140,10 @@ class SnakeEnv(gym.Env):
         if state == 0:
             reward = reward - 1 / snake_length
         elif state == 1:
-            reward = reward + 1 / snake_length
-        elif self == 4:
+            reward = reward + 1.01 / snake_length
+        elif state == 4:
             self.step_count = 0
-            reward = snake_length / self.max_snake_length
+            reward = reward + 10 * (snake_length / self.max_snake_length)
         #reward += 0.1 #one step reward
         reward = reward * 0.1
         #print(reward,repeat_peanlity)

@@ -100,7 +100,7 @@ def main():
         n_steps=2048,
         batch_size=512*8,
         n_epochs=4,
-        gamma=0.8,
+        gamma=0.7,
         learning_rate=lr_schedule,
         clip_range=clip_range_schedule,
         ent_coef = 0.1,
@@ -108,7 +108,7 @@ def main():
     )
     #checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
     monitor_callback = MonitorCallback() 
-    model.learn(total_timesteps=1e8,callback=[monitor_callback])
+    model.learn(total_timesteps=5e7,callback=[monitor_callback])
     model.save('pth/ppo_snake_early')
     env.close()
 
@@ -119,14 +119,14 @@ def load():
     env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
     lr_schedule = schedule_fn(5e-4, 2.5e-6)
     clip_range_schedule = schedule_fn(0.150, 0.025)
-    model = MaskablePPO.load("pth/ppo_snake_early_2.zip", env=env, device=device)
-    model.gamma=0.7
+    model = MaskablePPO.load("pth/ppo_snake_early_1.zip", env=env, device=device)
+    model.gamma=0.84
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
     model.ent_coef = 0.01
     info_callback = MonitorCallback() 
-    model.learn(total_timesteps=1e7,callback=[info_callback])
-    model.save('pth/ppo_snake_early_3')
+    model.learn(total_timesteps=1e8,callback=[info_callback])
+    model.save('pth/ppo_snake_early_2')
     env.close()
 
 if __name__ == '__main__':
