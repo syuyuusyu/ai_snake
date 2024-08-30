@@ -103,7 +103,7 @@ class SnakeEnv(gym.Env):
         }
         reward = 0.0
 
-        repeat_rate = 6
+        repeat_rate = 4
         repeat_peanlity = 0
         if self.step_count >= self.max_snake_length:
             x,y = self.game.snake[0]
@@ -161,5 +161,5 @@ class SnakeEnv(gym.Env):
         #directions = ['up','down','left','right']
         arr = ['down','up','right','left']
         mask[arr.index(game.direction)] = 0
-        return mask
-        #return np.array([1, 1, 1, 1], dtype=np.uint8)
+        #return mask
+        return np.array([1, 1, 1, 1], dtype=np.uint8)

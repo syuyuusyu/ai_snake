@@ -38,7 +38,7 @@ class SnakeGame:
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
-            self.display_intial = 10
+            self.display_intervial = 2
             self.display_count = 0
             if not train_mode:
                 self.font_style = pygame.font.SysFont(None, 50)
@@ -201,7 +201,7 @@ class SnakeGame:
                         print(f'---back_forawrd {p_direction} {self.direction}') 
                 self.step()
                 self.draw()
-            self.display_count = (self.display_count + 1) % self.display_intial
+            self.display_count = (self.display_count + 1) % self.display_intervial
             if not self.silent_mode:
                 self.clock.tick(60)
         pygame.quit()
