@@ -38,7 +38,7 @@ class SnakeGame:
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
-            self.display_intervial = 2
+            self.display_intervial = 10
             self.display_count = 0
             if not train_mode:
                 self.font_style = pygame.font.SysFont(None, 50)
@@ -96,6 +96,8 @@ class SnakeGame:
 
 
     def create_food(self)->Tuple[int,int]:
+        if len(self.snake) == 4 and random.randrange(0,11)>9:
+            return (self.board_size-1,self.board_size-1)
         # 生成所有可能的位置
         all_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size)}
         # 移除蛇占据的位置
