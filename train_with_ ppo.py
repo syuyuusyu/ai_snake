@@ -119,14 +119,14 @@ def load():
     env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
     lr_schedule = schedule_fn(5e-4, 2.5e-6)
     clip_range_schedule = schedule_fn(0.150, 0.025)
-    model = MaskablePPO.load("pth/ppo_snake_no_back.zip", env=env, device=device)
-    model.gamma=0.94
+    model = MaskablePPO.load("pth/ppo_snake_on_edge.zip", env=env, device=device)
+    model.gamma=0.84
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
     model.ent_coef = 0.01
     info_callback = MonitorCallback() 
     model.learn(total_timesteps=5e7,callback=[info_callback])
-    model.save('pth/ppo_snake_no_back')
+    model.save('pth/ppo_snake_on_edge')
     env.close()
 
 if __name__ == '__main__':

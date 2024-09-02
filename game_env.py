@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 import numpy as np
 from snake_game import SnakeGame
-from typing import Optional
+from typing import Optional,Tuple
 import math
 
 class SnakeEnv(gym.Env):
@@ -72,8 +72,8 @@ class SnakeEnv(gym.Env):
         penalty_factor = 1 + normalized_distance  # 中心为1，边缘最大为2
         return penalty_factor
     
-    def is_food_on_edge(self)->bool:
-        x, y = self.game.food
+    def is_on_edge(self,point:Tuple[int,int])->bool:
+        x, y = point
         max_index = self.game.board_size -1
         return x == 0 or x == max_index or y == 0 or y == max_index
 
@@ -142,10 +142,15 @@ class SnakeEnv(gym.Env):
         elif state == 1:
             reward = reward + 1.01 / snake_length
         elif state == 4:
-            coefficient = 20 if self.is_food_on_edge() else 10
+            # coefficient = 10
+            # if self.is_on_edge(self.game.snake[0]):
+            #     coefficient = 20
+            #     print('eat on edge')
+            coefficient = 20 if self.is_on_edge(self.game.snake[0]) else 10
             self.step_count = 0
             reward = reward + coefficient * (snake_length / self.max_snake_length)
-        #reward += 0.1 #one step reward
+        if self.is_on_edge(self.game.snake[0]):
+            reward += 0.1 #step on edge
         reward = reward * 0.1
         #print(reward,repeat_peanlity)
         return observation, reward+repeat_peanlity, terminated, info
