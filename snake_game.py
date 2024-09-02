@@ -108,7 +108,7 @@ class SnakeGame:
         x, y = random.choice(available_positions)
         return (x,y)
     
-    def step(self)-> Tuple[bool,float,int]:
+    def step(self)-> Tuple[bool,int]:
         """Move the snake one step in the current direction.
         
         Returns:
