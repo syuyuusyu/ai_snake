@@ -86,6 +86,16 @@ class SnakeGame:
         obs_with_border = np.transpose(obs_with_border, (2, 0, 1))
         return obs_with_border
     
+    def draw_obs(self):
+        obs = self.get_obs()
+        obs = np.transpose(obs,(1,2,0))
+        cell_size = self.screen_size / len(obs[0])
+        for x,arr in enumerate(obs):
+            for y,color in enumerate(arr):
+                pygame.draw.rect(self.screen, color, pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size))
+        pygame.display.flip()      
+
+    
     def draw(self):
         if self.silent_mode:
             return    
@@ -210,7 +220,7 @@ class SnakeGame:
                         or (p_direction == 'down' and self.direction == 'up'):
                         print(f'---back_forawrd {p_direction} {self.direction}') 
                 self.step()
-                self.draw()
+                self.draw_obs()
             self.display_count = (self.display_count + 1) % self.display_intervial
             if not self.silent_mode:
                 self.clock.tick(60)
