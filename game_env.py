@@ -110,11 +110,11 @@ class SnakeEnv(gym.Env):
 
         repeat_rate = 4
         repeat_peanlity = 0
-        # if self.step_count >= self.max_snake_length:
-        #     x,y = self.game.snake[0]
-        #     penalty_factor = self.calculate_penalty_factor(x, y, self.game.board_size)
-        #     self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.001* penalty_factor
-        #     repeat_peanlity = self.repeat_prossibility[x][y]
+        if self.step_count >= self.max_snake_length:
+            x,y = self.game.snake[0]
+            penalty_factor = self.calculate_penalty_factor(x, y, self.game.board_size)
+            self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.001* penalty_factor
+            repeat_peanlity = self.repeat_prossibility[x][y]
 
         if self.step_count % self.max_snake_length * repeat_rate ==0 :
             #without eat food in step_count
@@ -149,14 +149,18 @@ class SnakeEnv(gym.Env):
         elif state == 4:
             coefficient = 10
             if self.is_on_edge(self.game.snake[0]):
-                coefficient = 20
+                coefficient = 11
+                if self.is_on_right_and_down(self.game.snake[0]):
+                    coefficient = 12
                 #print('eat on edge')
             #coefficient = 30 if self.is_on_right_and_down(self.game.snake[0]) else 10
             self.step_count = 0
             reward = reward + coefficient * (snake_length / self.max_snake_length)
-        if self.is_on_edge(self.game.snake[0]):
-            reward += 0.01 #step on edge
-        reward = reward * 0.1
+        # if self.is_on_edge(self.game.snake[0]):
+        #     reward += 0.01 #step on edge
+        # if self.is_on_right_and_down(self.game.snake[0]):
+        #     reward += 0.005
+        # reward = reward * 0.1
         #print(reward,repeat_peanlity)
         return observation, reward+repeat_peanlity, terminated, info
     
