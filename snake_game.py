@@ -38,7 +38,7 @@ class SnakeGame:
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
-            self.display_intervial = 10
+            self.display_intervial = 2
             self.display_count = 0
             if not train_mode:
                 self.font_style = pygame.font.SysFont(None, 50)
@@ -112,14 +112,14 @@ class SnakeGame:
         snake_positions = {(x,y) for x,y in self.snake}
         available_positions = list(all_positions - snake_positions)
 
-        # 如果蛇的长度小于10，并且随机条件满足，则在右下角区域强化训练
-        # if len(self.snake) < 10 and random.randrange(0, 11) > 8:
-        #     right_positions = {(x, y) for x in range(self.board_size - 1, self.board_size) for y in range(self.board_size)}  # 最右1列
-        #     bottom_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size - 1, self.board_size)}  # 最下1行
-        #     left_positions = {(x, y) for x in range(0, 1) for y in range(self.board_size)}  # 最左1列
-        #     up_positions = {(x, y) for x in range(self.board_size) for y in range(0, 1)}  # 最上1行
-        #     corner_positions = right_positions | bottom_positions | left_positions | up_positions
-        #     available_positions = list(set(available_positions) & corner_positions)  # 只保留边缘的可用位置
+        #如果蛇的长度小于10，并且随机条件满足，则在右下角区域强化训练
+        if len(self.snake) < 10 and random.randrange(0, 11) > 8:
+            right_positions = {(x, y) for x in range(self.board_size - 1, self.board_size) for y in range(self.board_size)}  # 最右1列
+            bottom_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size - 1, self.board_size)}  # 最下1行
+            left_positions = {(x, y) for x in range(0, 1) for y in range(self.board_size)}  # 最左1列
+            up_positions = {(x, y) for x in range(self.board_size) for y in range(0, 1)}  # 最上1行
+            corner_positions = right_positions | bottom_positions | left_positions | up_positions
+            available_positions = list(set(available_positions) & corner_positions)  # 只保留边缘的可用位置
 
         if not available_positions:
             self.geme_win = True
@@ -220,7 +220,7 @@ class SnakeGame:
                         or (p_direction == 'down' and self.direction == 'up'):
                         print(f'---back_forawrd {p_direction} {self.direction}') 
                 self.step()
-                self.draw_obs()
+                self.draw()
             self.display_count = (self.display_count + 1) % self.display_intervial
             if not self.silent_mode:
                 self.clock.tick(60)
