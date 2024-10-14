@@ -113,13 +113,13 @@ class SnakeGame:
         available_positions = list(all_positions - snake_positions)
 
         #如果蛇的长度小于10，并且随机条件满足，则在右下角区域强化训练
-        if len(self.snake) < 10 and random.randrange(0, 11) > 8:
-            right_positions = {(x, y) for x in range(self.board_size - 1, self.board_size) for y in range(self.board_size)}  # 最右1列
-            bottom_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size - 1, self.board_size)}  # 最下1行
-            left_positions = {(x, y) for x in range(0, 1) for y in range(self.board_size)}  # 最左1列
-            up_positions = {(x, y) for x in range(self.board_size) for y in range(0, 1)}  # 最上1行
-            corner_positions = right_positions | bottom_positions | left_positions | up_positions
-            available_positions = list(set(available_positions) & corner_positions)  # 只保留边缘的可用位置
+        # if len(self.snake) < 10 and random.randrange(0, 11) > 8:
+        #     right_positions = {(x, y) for x in range(self.board_size - 1, self.board_size) for y in range(self.board_size)}  # 最右1列
+        #     bottom_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size - 1, self.board_size)}  # 最下1行
+        #     left_positions = {(x, y) for x in range(0, 1) for y in range(self.board_size)}  # 最左1列
+        #     up_positions = {(x, y) for x in range(self.board_size) for y in range(0, 1)}  # 最上1行
+        #     corner_positions = right_positions | bottom_positions | left_positions | up_positions
+        #     available_positions = list(set(available_positions) & corner_positions)  # 只保留边缘的可用位置
 
         if not available_positions:
             self.geme_win = True
