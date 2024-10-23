@@ -27,16 +27,25 @@ elif torch.backends.mps.is_available():
 
 
 
-a = [1,2,3,4,5,6,7]
 
-# 3 -> 1
-# 4 -> 1,2
-# 5 -> 2
-# 6 -> 2,3
-# 7 -> 3
-# 8 -> 3,4
-
-
-a = [[0]*10]*10
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+    
+root = deque([1,2,3,4,None,2,4,None,None,4])
+a = root.popleft()
 print(a)
+node = TreeNode()
+
+def create(node,root):
+    None
+
+
+
+
+
+
+
 
