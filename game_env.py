@@ -119,6 +119,7 @@ class SnakeEnv(gym.Env):
         if self.step_count % self.max_snake_length * repeat_rate ==0 :
             #without eat food in step_count
             self.repeat_count += 1
+            print(f'repeat:{self.rollout_snake_length} {self.game.food}')
             #reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             #reward = reward * 0.1
             terminated = True

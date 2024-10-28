@@ -153,6 +153,8 @@ class SnakeGame:
             if len(self.snake) == self.board_size**2:
                 #Victory!!!
                 return (True,5) 
+            if self.model is not None:
+                print(len(self.snake))
             self.food = self.create_food()
             #print('eat food')
             return (False,4)
