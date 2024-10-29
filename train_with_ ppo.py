@@ -23,6 +23,7 @@ elif torch.backends.mps.is_available():
 
 
 
+
 def make_env(seed=0,board_size=10):
     def _init():
         env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True)
