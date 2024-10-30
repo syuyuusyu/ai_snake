@@ -32,12 +32,8 @@ random_seed = random.randint(0,1e7)
 print(random_seed)
 env = DummyVecEnv([make_env(random_seed,board_size)])
 
-<<<<<<< HEAD
 model = MaskablePPO.load('pth/final_13.zip', env=env, device=device)
 
-=======
-model = MaskablePPO.load('pth/final_8.zip', env=env, device=device)
->>>>>>> d206195 (mac)
 #print(model.observation_space.shape)
 
 if __name__ == "__main__":  
