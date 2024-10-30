@@ -35,6 +35,39 @@ class SnakeEnv(gym.Env):
         self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.float16)
         self.rollout_snake_length = len(self.game.snake)
         self.repeat_map = defaultdict(int)
+        self.repeat_point_count  = self.normalize_repeat_map({
+            (11, 11):83319,
+            (10, 7):9023,
+            (11, 6):7504,
+            (0, 10):894,
+            (11, 0):5812,
+            (4, 11):1058,
+            (10, 9):9547,
+            (11, 5):11680,
+            (4, 2):150,
+            (1, 11):2164,
+            (10, 8):9025,
+            (10, 11):153,
+            (11, 1):1697,
+            (0, 11):4426,
+            (2, 11):749,
+            (7, 11):947,
+            (11, 4):2181,
+            (3, 11):1363,
+            (2, 7):141,
+            (0, 9):140,
+            (9, 5):135,
+            (5, 11):544,
+            (4, 1):134,
+            (1, 4):129,
+            (11, 3):814,
+            (9, 10):135,
+            (1, 5):80,
+            (11, 10):179,
+            (11, 2):50,
+            (0, 8):46,
+            (6, 10):10,
+        })
     
     def get_train_info(self):
         return {
@@ -89,6 +122,32 @@ class SnakeEnv(gym.Env):
         x,y = point
         max_index = self.game.board_size -1
         return x == max_index
+    
+    def normalize_repeat_map(self,repeat_map):
+        """将 repeat_map 归一化为概率形式"""
+        total_count = sum(repeat_map.values())  # 总次数
+        if total_count == 0:
+            # 避免总和为 0 的情况
+            return {key: 1 / len(repeat_map) for key in repeat_map}
+        return {key: value / total_count for key, value in repeat_map.items()}
+    def process_probability_with_log(self,probability):
+        """使用对数平滑处理概率"""
+        return math.log(1 + probability)
+    def process_probability_with_sqrt(self,probability):
+        """使用平方根平滑处理概率"""
+        return math.sqrt(probability)    
+    def calculate_coefficient(self,probability, method='log'):
+        if probability == 0:
+            return 0
+        """根据不同的方法计算奖励系数"""
+        if method == 'log':
+            value = self.process_probability_with_log(probability)
+        elif method == 'sqrt':
+            value = self.process_probability_with_sqrt(probability)
+        else:
+            value = probability  # 不做处理
+    
+        return value  # 最终的奖励系数
 
     def step(self, action):
         if self.is_new_rollout:
@@ -119,6 +178,9 @@ class SnakeEnv(gym.Env):
 
         repeat_rate = 4
         repeat_peanlity = 0
+
+
+
         # if self.step_count >= self.max_snake_length:
         #     x,y = self.game.snake[0]
         #     penalty_factor = self.calculate_penalty_factor(x, y, self.game.board_size)
@@ -159,9 +221,11 @@ class SnakeEnv(gym.Env):
         elif state == 1:
             reward = reward + 1 / snake_length
         elif state == 4:
+            repeat_probability = self.repeat_point_count.get(self.game.snake[0], 0)
+            repeat_adjust = self.calculate_coefficient(repeat_probability)
             coefficient = 1
             self.step_count = 0
-            reward = reward + coefficient * (snake_length / self.max_snake_length)
+            reward = reward + coefficient * (snake_length / self.max_snake_length) + repeat_adjust
         return observation, reward+repeat_peanlity, terminated, info
     
     def render(self, mode='human', **kwargs):
