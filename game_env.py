@@ -216,10 +216,11 @@ class SnakeEnv(gym.Env):
             self.victory_count += 1
             return observation, reward, True, info
 
-        if state == 0:
-            reward = reward - 1 / snake_length
-        elif state == 1:
-            reward = reward + 1 / snake_length
+        # Remove step-based rewards for longer snake
+        # if state == 0:
+        #     reward = reward - 1 / snake_length
+        # elif state == 1:
+        #     reward = reward + 1 / snake_length
         elif state == 4:
             repeat_probability = self.repeat_point_count.get(self.game.snake[0], 0)
             repeat_adjust = self.calculate_coefficient(repeat_probability)
