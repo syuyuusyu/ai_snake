@@ -4,6 +4,7 @@ import numpy as np
 from snake_game import SnakeGame
 from typing import Optional,Tuple
 import math
+from collections import defaultdict
 
 class SnakeEnv(gym.Env):
     state_dic = {
@@ -33,6 +34,7 @@ class SnakeEnv(gym.Env):
         self.is_new_rollout = False
         self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.float16)
         self.rollout_snake_length = len(self.game.snake)
+        self.repeat_map = defaultdict(int)
     
     def get_train_info(self):
         return {
@@ -43,6 +45,7 @@ class SnakeEnv(gym.Env):
             'repeat_count': self.repeat_count,
             'victory_count': self.victory_count,
             'rollout_snake_length': self.rollout_snake_length,
+            'repeat_map':self.repeat_map
         }
     
     def reset_rollout(self):
@@ -81,6 +84,11 @@ class SnakeEnv(gym.Env):
         x,y = point
         max_index = self.game.board_size -1
         return x == max_index or y == max_index
+    
+    def is_on_right(self,point:Tuple[int,int])->bool:
+        x,y = point
+        max_index = self.game.board_size -1
+        return x == max_index
 
     def step(self, action):
         if self.is_new_rollout:
@@ -104,7 +112,8 @@ class SnakeEnv(gym.Env):
             'snake_length' : snake_length,
             'step_count' : self.game.step_count,
             'game_loop': self.game.game_loop,
-            'step_state': SnakeEnv.state_dic[state]
+            'step_state': SnakeEnv.state_dic[state],
+            'repeat_map': self.repeat_map
         }
         reward = 0.0
 
@@ -119,7 +128,9 @@ class SnakeEnv(gym.Env):
         if self.step_count % self.max_snake_length * repeat_rate ==0 :
             #without eat food in step_count
             self.repeat_count += 1
-            print(f'repeat:{self.rollout_snake_length} {self.game.food}')
+            
+            self.repeat_map[self.game.food] = self.repeat_map[self.game.food]+1
+            #print(f'repeat:{self.rollout_snake_length} {self.game.food} {self.repeat_map}')
             #reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             #reward = reward * 0.1
             terminated = True

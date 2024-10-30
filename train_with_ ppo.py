@@ -11,6 +11,7 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.callbacks import BaseCallback,CheckpointCallback
 import numpy as np
 import random
+from collections import defaultdict
 
 from game_env import SnakeEnv
 
@@ -22,7 +23,7 @@ elif torch.backends.mps.is_available():
 
 
 
-
+repeat_map = defaultdict(int)
 
 def make_env(seed=0,board_size=10):
     def _init():
@@ -58,6 +59,12 @@ class MonitorCallback(BaseCallback):
         for train_info in train_info_list:
             for key in average_info.keys():
                 average_info[key] += train_info[key]
+            dic = train_info['repeat_map']
+            for k,v in dic.items():
+                repeat_map[k] = repeat_map[k]+v
+                #print(repeat_map)
+                
+                
 
         # 计算平均值
         for key in average_info.keys():
@@ -127,9 +134,12 @@ def load():
     model.clip_range = clip_range_schedule
     model.ent_coef = 0
     info_callback = MonitorCallback() 
-    model.learn(total_timesteps=2e8,callback=[info_callback])
-    model.save('pth/final_14')
+    model.learn(total_timesteps=1e6,callback=[info_callback])
+    model.save('pth/final_tt')
     env.close()
 
 if __name__ == '__main__':
     load()
+
+    for k,v in repeat_map.items():
+        print(f'{k}:{v}')
