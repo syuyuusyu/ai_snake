@@ -134,8 +134,8 @@ def load():
     model.clip_range = clip_range_schedule
     model.ent_coef = 0
     info_callback = MonitorCallback() 
-    model.learn(total_timesteps=1e7,callback=[info_callback])
-    model.save('pth/final_tt')
+    model.learn(total_timesteps=2e8,callback=[info_callback])
+    model.save('pth/final_14')
     env.close()
 
 if __name__ == '__main__':
