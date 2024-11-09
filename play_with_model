@@ -32,7 +32,7 @@ random_seed = random.randint(0,1e7)
 print(random_seed)
 env = DummyVecEnv([make_env(random_seed,board_size)])
 
-model = MaskablePPO.load('pth/final_14.zip', env=env, device=device)
+model = MaskablePPO.load('pth/final_22.zip', env=env, device=device)
 
 #print(model.observation_space.shape)
 
