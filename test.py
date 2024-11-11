@@ -3,7 +3,7 @@ import sb3_contrib
 import stable_baselines3
 import gym
 from typing import Tuple,Deque,List
-from collections import deque
+from collections import deque,defaultdict
 
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
@@ -35,7 +35,7 @@ def normalize_repeat_map(repeat_map):
     return {key: value / total_count for key, value in repeat_map.items()}
 
 
-div = {
+repeat_count = {
      (11, 11):16841754,
 (9, 11):1529389,
 (11, 1):1561247,
@@ -180,6 +180,48 @@ for index,v in enumerate(arr):
 
 for k,v in retult.items():
     print(f'{k}:{v},')
+
+
+total = 0
+for v in repeat_count.values():
+    total = total +v 
+
+#print(total)
+class TreeNode:
+    def __init__(self, x):
+        self.val = x
+        self.left = None
+        self.right = None
+
+def list_to_tree_node(lst):
+    if not lst:
+        return None
+    
+    root = TreeNode(lst[0])
+    queue = deque([root])
+    i = 1
+    
+    while queue and i < len(lst):
+        current = queue.popleft()  # 使用 deque.popleft()，更高效
+        if current:
+            # 添加左子节点
+            if i < len(lst) and lst[i] is not None:
+                current.left = TreeNode(lst[i])
+                queue.append(current.left)
+            i += 1
+            
+            # 添加右子节点
+            if i < len(lst) and lst[i] is not None:
+                current.right = TreeNode(lst[i])
+                queue.append(current.right)
+            i += 1
+            
+    return root
+
+# 示例使用
+lst = [3, 5, 1, 6, 2, 0, 8, None, None, 7, 4]
+root = list_to_tree_node(lst)
+
 
 
 
