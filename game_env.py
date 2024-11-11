@@ -138,7 +138,70 @@ class SnakeEnv(gym.Env):
             value = probability  # 不做处理
     
         return value  # 最终的奖励系数
+    
+    def reachable_space_reward(self, threshold_ratio=0.6):
+        """
+        计算可达空间奖励，用于避免蛇体自我封闭。
+        
+        参数:
+        - threshold_ratio: float, 控制蛇体占用空间比例的阈值，当蛇体长度超过该比例时启用奖励
 
+        返回:
+        - reward: float, 根据蛇体周围的可达空间大小计算的奖励值
+        """
+        # 计算棋盘总面积和蛇体长度
+        board_area = self.max_snake_length
+        snake_length = len(self.game.snake)
+        
+        # 计算蛇体长度的临界值，当蛇体长度超过该值时启用可达空间奖励
+        snake_length_threshold = int(board_area * threshold_ratio)
+        
+        # 判断蛇体长度是否超过临界值
+        if snake_length <= snake_length_threshold:
+            # 如果未达到临界值，返回0奖励
+            return 0.0
+
+        # 从蛇尾开始计算可达空间
+        reachable_spaces = self.bfs_reachable_area(
+            start=self.game.snake[-1],  # 从蛇尾开始
+            snake_body=self.game.snake,  # 蛇体位置
+            board_size=self.game.board_size
+        )
+        
+        # 计算奖励：可达空间比例，值越大奖励越高
+        reward = len(reachable_spaces) / board_area
+        return reward
+
+    def bfs_reachable_area(self, start, snake_body, board_size):
+        """
+        使用 BFS 从给定的起点（蛇尾）查找可达空间。
+        
+        参数:
+        - start: tuple, BFS 搜索的起点（蛇尾位置）
+        - snake_body: list, 包含蛇体的位置，防止访问
+        - board_size: int, 棋盘的大小
+
+        返回:
+        - reachable_spaces: set, 可达空间的集合
+        """
+        queue = [start]
+        visited = set(snake_body)  # 蛇体位置不可访问
+        reachable_spaces = set()
+
+        while queue:
+            position = queue.pop(0)
+            if position in visited:
+                continue
+            visited.add(position)
+            reachable_spaces.add(position)
+
+            # 添加邻居位置并检查边界
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                new_position = (position[0] + dx, position[1] + dy)
+                if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
+                    queue.append(new_position)
+
+        return reachable_spaces
     def step(self, action):
         if self.is_new_rollout:
             self.back_forward_count = 0
@@ -164,7 +227,7 @@ class SnakeEnv(gym.Env):
             'step_state': SnakeEnv.state_dic[state],
             'repeat_map': self.repeat_map
         }
-        reward = 0.0
+        reward = self.reachable_space_reward()
 
         repeat_rate = 4
         repeat_peanlity = 0
