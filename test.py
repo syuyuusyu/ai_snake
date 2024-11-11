@@ -35,156 +35,62 @@ def normalize_repeat_map(repeat_map):
     return {key: value / total_count for key, value in repeat_map.items()}
 
 
-repeat_count = {
-     (11, 11):16841754,
-(9, 11):1529389,
-(11, 1):1561247,
-(11, 0):2190087,
-(1, 11):1807822,
-(10, 11):2246846,
-(11, 3):449968,
-(0, 11):2345112,
-(10, 9):84519,
-(11, 4):811222,
-(2, 11):1409112,
-(11, 6):1939690,
-(11, 5):2290995,
-(3, 11):1525072,
-(5, 11):798017,
-(6, 11):181205,
-(7, 11):236105,
-(8, 11):602816,
-(11, 7):323815,
-(11, 8):125972,
-(0, 10):300496,
-(4, 11):1571729,
-(1, 3):3599,
-(11, 2):279206,
-(11, 9):117026,
-(5, 7):4474,
-(6, 10):7945,
-(4, 7):7724,
-(9, 0):2229,
-(9, 2):4154,
-(4, 4):2226,
-(6, 5):4408,
-(11, 10):139027,
-(8, 0):5897,
-(9, 4):2194,
-(7, 9):2997,
-(10, 5):5267,
-(5, 10):3126,
-(10, 2):3991,
-(4, 3):3707,
-(1, 4):3780,
-(4, 8):2141,
-(1, 0):3433,
-(9, 3):3002,
-(10, 1):3297,
-(10, 3):2870,
-(3, 8):3896,
-(0, 8):5702,
-(7, 8):3709,
-(2, 3):3249,
-(8, 4):2796,
-(1, 8):6890,
-(6, 6):1938,
-(4, 0):2720,
-(10, 7):7366,
-(8, 5):2023,
-(2, 9):3544,
-(10, 8):4792,
-(7, 7):3265,
-(0, 6):3577,
-(3, 7):4611,
-(8, 2):1841,
-(3, 2):3893,
-(6, 4):2644,
-(4, 9):5091,
-(6, 7):2515,
-(0, 9):1751,
-(2, 0):3530,
-(5, 4):2392,
-(8, 3):1685,
-(5, 5):2191,
-(3, 0):5561,
-(6, 0):1622,
-(6, 9):2976,
-(2, 7):3574,
-(5, 0):2015,
-(9, 5):1577,
-(1, 10):2021,
-(2, 2):2917,
-(3, 9):1534,
-(6, 8):2385,
-(8, 6):1498,
-(6, 2):3650,
-(1, 6):2927,
-(3, 3):1585,
-(1, 7):2841,
-(2, 10):3664,
-(0, 5):2008,
-(9, 10):4198,
-(8, 8):1400,
-(4, 10):3550,
-(1, 9):1359,
-(8, 1):1481,
-(5, 8):2607,
-(5, 2):1277,
-(0, 2):1239,
-(5, 6):2261,
-(8, 9):2099,
-(4, 1):1127,
-(9, 7):3106,
-(1, 1):1097,
-(9, 9):2208,
-(3, 5):1067,
-(8, 7):1942,
-(7, 2):1063,
-(10, 0):1560,
-(2, 6):1049,
-(3, 1):1501,
-(0, 7):1079,
-(7, 4):993,
-(2, 8):1287,
-(5, 3):1420,
-(5, 9):814,
-(7, 6):800,
-(8, 10):949,
-(9, 6):706,
-(3, 4):661,
-(0, 0):911,
-(2, 1):580,
-(5, 1):487,
-(3, 10):436,
-(10, 6):414,
-(4, 5):367,
-(1, 5):327,
-(4, 6):316,
-(6, 3):265,
-(7, 5):72,
-(0, 4):14,
-        
-}
+def calculate_reachable_space_from_tail(self, snake_head, snake_tail, snake_body, board_size):
+    """
+    计算从蛇尾开始的可达空间，避免蛇体封闭自己。
+    """
+    reachable_spaces = self.bfs_reachable_area(snake_tail, snake_body, board_size)
+    return len(reachable_spaces) / (board_size ** 2)  # 可达空间比例，越大越好
 
-arr = []
-for k,v in div.items():
-    arr.append(v)
-retult = {}
-arr = sorted(arr,reverse=True)
-for index,v in enumerate(arr):
-    if index<=20:
-        for k,p in div.items():
-            if v==p:
-                retult[k] = p
+def bfs_reachable_area(self, start, snake_body, board_size):
+    """
+    使用 BFS 从给定的起点（蛇尾）查找可达空间。
+    start: 搜索的起点，即蛇尾位置
+    """
+    queue = [start]
+    visited = set(snake_body)  # 蛇体位置不可访问
+    reachable_spaces = set()
 
-for k,v in retult.items():
-    print(f'{k}:{v},')
+    while queue:
+        position = queue.pop(0)
+        if position in visited:
+            continue
+        visited.add(position)
+        reachable_spaces.add(position)
 
+        # 添加邻居位置
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            new_position = (position[0] + dx, position[1] + dy)
+            if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
+                queue.append(new_position)
 
-total = 0
-for v in repeat_count.values():
-    total = total +v 
+    return reachable_spaces
+#---------
+def calculate_reachable_space_reward(self, snake_head, snake_body, board_size):
+    reachable_spaces = self.bfs_reachable_area(snake_head, snake_body, board_size)
+    # 可达空间越大奖励越高
+    return len(reachable_spaces) / (board_size ** 2)
+
+def bfs_reachable_area(self, snake_head, snake_body, board_size):
+    # 使用 BFS 查找蛇头位置周围的可达区域
+    queue = [snake_head]
+    visited = set(snake_body)
+    reachable_spaces = set()
+
+    while queue:
+        position = queue.pop(0)
+        if position in visited:
+            continue
+        visited.add(position)
+        reachable_spaces.add(position)
+
+        # 添加邻居位置
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            new_position = (position[0] + dx, position[1] + dy)
+            if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
+                queue.append(new_position)
+
+    return reachable_spaces
 
 #print(total)
 class TreeNode:
