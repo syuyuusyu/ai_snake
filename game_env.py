@@ -200,8 +200,8 @@ class SnakeEnv(gym.Env):
                 new_position = (position[0] + dx, position[1] + dy)
                 if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
                     queue.append(new_position)
-
         return reachable_spaces
+    
     def step(self, action):
         if self.is_new_rollout:
             self.back_forward_count = 0
