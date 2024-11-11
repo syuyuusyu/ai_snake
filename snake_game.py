@@ -66,6 +66,8 @@ class SnakeGame:
         for index, (x,y) in enumerate(self.snake):
             if index ==0:
                 play_ground[(x,y)] = snake_head_value
+            # elif index == len(self.snake) -1:
+            #     play_ground[(x,y)] = SnakeGame.yellow
             else:
                 play_ground[(x,y)] = snake_body_value[index]
         #obs = np.repeat(np.repeat(obs,self.scale,axis=0),self.scale, axis=1)
