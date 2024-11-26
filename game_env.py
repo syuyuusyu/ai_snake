@@ -152,11 +152,9 @@ class SnakeEnv(gym.Env):
         # 计算棋盘总面积和蛇体长度
         board_area = self.max_snake_length
         snake_length = len(self.game.snake)
-      
         
         # 计算蛇体长度的临界值，当蛇体长度超过该值时启用可达空间奖励
         snake_length_threshold = int(board_area * threshold_ratio)
-      
         # 判断蛇体长度是否超过临界值
         if snake_length <= snake_length_threshold:
             # 如果未达到临界值，返回0奖励
@@ -192,7 +190,7 @@ class SnakeEnv(gym.Env):
 
         while queue:
             position = queue.pop(0)
-            if position in visited or position in snake_body_set:
+            if position in visited:
                 continue
             visited.add(position)
             reachable_spaces.add(position)

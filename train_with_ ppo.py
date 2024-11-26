@@ -122,7 +122,7 @@ def main():
 
 def load():
     seed_set = set()
-    while len(seed_set) < 32:
+    while len(seed_set) < 128:
         seed_set.add(random.randint(0,1e7))
     env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
     #lr_schedule = schedule_fn(5e-4, 2.5e-6)
