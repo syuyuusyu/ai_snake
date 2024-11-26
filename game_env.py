@@ -187,8 +187,7 @@ class SnakeEnv(gym.Env):
         - reachable_spaces: set, 可达空间的集合
         """
         queue = [start]
-        visited = set()  # 仅用于记录已访问的位置
-        snake_body_set = set(snake_body)  # 创建蛇体位置的集合，加快访问速度
+        visited = set(snake_body) -{start} # 蛇体位置不可访问
         reachable_spaces = set()
 
         while queue:
