@@ -97,10 +97,46 @@ class SnakeGame:
                 pygame.draw.rect(self.screen, color, pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size))
         pygame.display.flip()      
 
+    def bfs_reachable_area(self):
+        """
+        使用 BFS 从给定的起点（蛇尾）查找可达空间。
+
+        参数:
+        - start: tuple, BFS 搜索的起点（蛇尾位置）
+        - snake_body: list, 包含蛇体的位置，防止访问
+        - board_size: int, 棋盘的大小
+
+        返回:
+        - reachable_spaces: set, 可达空间的集合
+        """
+        start = self.snake[-1]
+        queue = [start]
+        visited = set(self.snake) -{start} # 蛇体位置不可访问
+        reachable_spaces = set()
+
+        while queue:
+            position = queue.pop(0)
+            if position in visited:
+                continue
+            visited.add(position)
+            reachable_spaces.add(position)
+
+            # 添加邻居位置并检查边界
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                new_position = (position[0] + dx, position[1] + dy)
+                if 0 <= new_position[0] < self.board_size and 0 <= new_position[1] < self.board_size:
+                    queue.append(new_position)
+        return reachable_spaces
+    
+    def draw_reachable_spaces(self):
+        for x,y in self.bfs_reachable_area():
+            pygame.draw.rect(self.screen, SnakeGame.yellow, pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size))
+        pygame.display.flip()  
     
     def draw(self):
         if self.silent_mode:
-            return    
+            return
+        #self.draw_reachable_spaces() 
         for x,arr in enumerate(self.get_play_ground()):
             for y,color in enumerate(arr):
                 pygame.draw.rect(self.screen, color, pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size))

@@ -139,7 +139,7 @@ class SnakeEnv(gym.Env):
     
         return value  # 最终的奖励系数
     
-    def reachable_space_reward(self, threshold_ratio=0.5):
+    def reachable_space_reward(self, threshold_ratio=0.6):
         """
         计算可达空间奖励，用于避免蛇体自我封闭。
         
@@ -200,7 +200,6 @@ class SnakeEnv(gym.Env):
                 new_position = (position[0] + dx, position[1] + dy)
                 if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
                     queue.append(new_position)
-        print(reachable_spaces)
         return reachable_spaces
 
     
