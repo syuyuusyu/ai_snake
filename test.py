@@ -128,6 +128,25 @@ def list_to_tree_node(lst):
 lst = [3, 5, 1, 6, 2, 0, 8, None, None, 7, 4]
 root = list_to_tree_node(lst)
 
+import pandas as pd
+
+# Column headers for the Excel file
+headers = [
+    "机构唯一号", "监管平台机构ID", "机构名称", "监管平台药品分类Code", "监管平台药品ID",
+    "监管平台药品通用名", "医院药品ID", "医院药品通用名", "医院药品商品名", "医药药品别名",
+    "医院药品包装规格", "医院药品产地名称", "医院药品单价", "医院药品有效标志", "上传时间"
+]
+
+# Create an empty DataFrame with the specified headers
+df = pd.DataFrame(columns=headers)
+
+# Save the DataFrame to an Excel file
+file_path = "药品目录.xlsx"
+df.to_excel(file_path, index=False)
+
+print(f"Excel file saved as {file_path}")
+
+
 
 
 
