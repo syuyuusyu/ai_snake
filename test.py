@@ -26,6 +26,8 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = 'mps'
 
+print(device)
+
 def normalize_repeat_map(repeat_map):
     """将 repeat_map 归一化为概率形式"""
     total_count = sum(repeat_map.values())  # 总次数
