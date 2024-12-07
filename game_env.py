@@ -139,7 +139,7 @@ class SnakeEnv(gym.Env):
     
         return value  # 最终的奖励系数
     
-    def reachable_space_reward(self, threshold_ratio=0.6):
+    def reachable_space_reward(self, threshold_ratio=0.4):
         """
         计算可达空间奖励，用于避免蛇体自我封闭。
         
