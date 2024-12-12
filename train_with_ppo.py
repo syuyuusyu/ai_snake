@@ -123,22 +123,23 @@ def main():
 
 def load():
     seed_set = set()
-    while len(seed_set) < 128:
+    while len(seed_set) < 64:
         seed_set.add(random.randint(0,1e7))
     env = SubprocVecEnv([make_env(seed,board_size) for seed in seed_set])
     #lr_schedule = schedule_fn(5e-4, 2.5e-6)asdfsadfsdaf
     lr_schedule = schedule_fn(5e-5, 1e-6)
-    clip_range_schedule = schedule_fn(0.150, 0.025)
-    model = MaskablePPO.load("pth/final_31sadfdsf.zip", env=env, device=device)
+    #clip_range_schedule = schedule_fn(0.150, 0.025)
+    clip_range_schedule = schedule_fn(5e-5, 1e-6)
+    model = MaskablePPO.load("pth/final_32.zip", env=env, device=device)
     model.gamma=0.98
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
     model.ent_coef = 0
     #model.n_steps = 2048
-    model.batch_size = 512 * 16
+    model.batch_size = 512 * 8
     info_callback = MonitorCallback() 
     model.learn(total_timesteps=2e8,callback=[info_callback])
-    model.save('pth/final_32')
+    model.save('pth/final_33')
     env.close()
 
 if __name__ == '__main__':
