@@ -19,7 +19,7 @@ board_size = 12
 
 def make_env(seed=0,board_size=12):
     def _init():
-        env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True)
+        env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True,bfs_intensity=0.1)
         env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
         env.seed(seed)
@@ -37,5 +37,5 @@ model = MaskablePPO.load('pth/final_33.zip', env=env, device=device)
 #print(model.observation_space.shape)
 
 if __name__ == "__main__":  
-    game = SnakeGame(board_size=board_size,silent_mode=False,train_mode=True,model=model,seed=random_seed)
+    game = SnakeGame(board_size=board_size,silent_mode=False,train_mode=True,model=model,seed=random_seed,bfs_intensity=0)
     game.run()

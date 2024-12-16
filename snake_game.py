@@ -14,7 +14,8 @@ class SnakeGame:
     green = (0, 255, 0)
     blue = (50, 153, 213)
 
-    def __init__(self,board_size = 10,silent_mode = True,seed = 0,train_mode = False,model = None) -> None:
+    def __init__(self,board_size = 10,silent_mode = True,seed = 0,train_mode = False,model = None,bfs_intensity = 0) -> None:
+        print(f'SnakeGame {bfs_intensity}')
         self.board_size = board_size
         self.directions = ['up','down','left','right']
         self.snake:Deque[Tuple[int,int]] = deque()
@@ -29,8 +30,10 @@ class SnakeGame:
         self.screen_size = self.cell_size * self.board_size
         self.step_count = 0
         self.game_loop = 0
+        self._bfs_reachable_area = set()
         random.seed(seed)
         self.model = model
+        self.bfs_intensity = bfs_intensity
         self.reset()
         self.scale = max(1, (32 + board_size - 1) // board_size)  # 确保 board_size * scale >= 32
         if not silent_mode:
@@ -56,12 +59,26 @@ class SnakeGame:
         self.game_quit = False
         self.game_loss = False
     
+    def get_bfs_color(self):
+        """根据强度系数计算BFS区域的颜色"""
+        base_color = (250, 255, 250)  # 初始浅色
+        target_color = (200, 240, 200)  # 最终颜色
+        current_color = tuple(
+            int(base + (target - base) * self.bfs_intensity)
+            for base, target in zip(base_color, target_color)
+        )
+        return current_color
+    
     
     def get_play_ground(self):
         play_ground = np.full((self.board_size,self.board_size,3),255,dtype=np.uint8)
         snake_body_value = [[0, 0, v] for v in np.linspace(100,255,len(self.snake),dtype=np.uint8 ) ] # 蓝色
         food_value = SnakeGame.green  # 绿色
-        snake_head_value = SnakeGame.red  # 红色
+        snake_head_value = SnakeGame.red
+        bfs_color = self.get_bfs_color()
+        self._bfs_reachable_area = self.bfs_reachable_area()
+        for (x,y) in self._bfs_reachable_area:
+            play_ground[(x,y)] = bfs_color
         play_ground[self.food] = food_value
         for index, (x,y) in enumerate(self.snake):
             if index ==0:
@@ -128,10 +145,6 @@ class SnakeGame:
                     queue.append(new_position)
         return reachable_spaces
     
-    def draw_reachable_spaces(self):
-        for x,y in self.bfs_reachable_area():
-            pygame.draw.rect(self.screen, SnakeGame.yellow, pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size))
-        pygame.display.flip()  
     
     def draw(self):
         if self.silent_mode:

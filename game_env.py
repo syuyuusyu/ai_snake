@@ -15,9 +15,10 @@ class SnakeEnv(gym.Env):
         4: 'eat food',
         5: 'Victory'
     }
-    def __init__(self, board_size=10, silent_mode=True, seed=0):
+    def __init__(self, board_size=10, silent_mode=True, seed=0,bfs_intensity=0):
         super().__init__()
-        self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True)
+        print(f'SnakeEnv {bfs_intensity}')
+        self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True,bfs_intensity=bfs_intensity)
         self.action_space = spaces.Discrete(4)
         shape_size = self.game.board_size * self.game.scale+2*self.game.scale
         self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_size, shape_size), dtype=np.uint8)
@@ -36,27 +37,7 @@ class SnakeEnv(gym.Env):
         self.rollout_snake_length = len(self.game.snake)
         self.repeat_map = defaultdict(int)
         self.repeat_point_count  = self.normalize_repeat_map({
-           (11, 11):16841754,
-            (0, 11):2345112,
-            (11, 5):2290995,
-            (10, 11):2246846,
-            (11, 0):2190087,
-            (11, 6):1939690,
-            (1, 11):1807822,
-            (4, 11):1571729,
-            (11, 1):1561247,
-            (9, 11):1529389,
-            (3, 11):1525072,
-            (2, 11):1409112,
-            (11, 4):811222,
-            (5, 11):798017,
-            (8, 11):602816,
-            (11, 3):449968,
-            (11, 7):323815,
-            (0, 10):300496,
-            (11, 2):279206,
-            (7, 11):236105,
-            (6, 11):181205,
+            (11, 11):16841754,
         })
     
     def get_train_info(self):
@@ -120,12 +101,15 @@ class SnakeEnv(gym.Env):
             # 避免总和为 0 的情况
             return {key: 1 / len(repeat_map) for key in repeat_map}
         return {key: value / total_count for key, value in repeat_map.items()}
+    
     def process_probability_with_log(self,probability):
         """使用对数平滑处理概率"""
         return math.log(1 + probability)
+    
     def process_probability_with_sqrt(self,probability):
         """使用平方根平滑处理概率"""
         return math.sqrt(probability)    
+    
     def calculate_coefficient(self,probability, method='log'):
         if probability == 0:
             return 0
@@ -139,7 +123,7 @@ class SnakeEnv(gym.Env):
     
         return value  # 最终的奖励系数
     
-    def reachable_space_reward(self, threshold_ratio=0.4):
+    def reachable_space_reward(self, threshold_ratio=0.5):
         """
         计算可达空间奖励，用于避免蛇体自我封闭。
         
@@ -161,47 +145,12 @@ class SnakeEnv(gym.Env):
             return 0.0
 
         # 从蛇尾开始计算可达空间
-        reachable_spaces = self.bfs_reachable_area(
-            start=self.game.snake[-1],  # 从蛇尾开始
-            snake_body=self.game.snake,  # 蛇体位置
-            board_size=self.game.board_size
-        )
+        reachable_spaces = self.game._bfs_reachable_area
         
         # 计算奖励：可达空间比例，值越大奖励越高
         reward = len(reachable_spaces) / board_area
         #print(snake_length,snake_length_threshold ,snake_length <= snake_length_threshold,reward)
         return reward
-
-    def bfs_reachable_area(self, start, snake_body, board_size):
-        """
-        使用 BFS 从给定的起点（蛇尾）查找可达空间。
-
-        参数:
-        - start: tuple, BFS 搜索的起点（蛇尾位置）
-        - snake_body: list, 包含蛇体的位置，防止访问
-        - board_size: int, 棋盘的大小
-
-        返回:
-        - reachable_spaces: set, 可达空间的集合
-        """
-        queue = [start]
-        visited = set(snake_body) -{start} # 蛇体位置不可访问
-        reachable_spaces = set()
-
-        while queue:
-            position = queue.pop(0)
-            if position in visited:
-                continue
-            visited.add(position)
-            reachable_spaces.add(position)
-
-            # 添加邻居位置并检查边界
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                new_position = (position[0] + dx, position[1] + dy)
-                if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
-                    queue.append(new_position)
-        return reachable_spaces
-
     
     def step(self, action):
         if self.is_new_rollout:
@@ -228,10 +177,7 @@ class SnakeEnv(gym.Env):
             'step_state': SnakeEnv.state_dic[state],
             'repeat_map': self.repeat_map
         }
-        #reward = self.reachable_space_reward()
-        reward = 0
-        if reward > 0:
-            print(reward)
+        reward = self.reachable_space_reward()
 
         repeat_rate = 4
         repeat_peanlity = 0
