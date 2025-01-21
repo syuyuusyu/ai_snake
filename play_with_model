@@ -19,7 +19,7 @@ board_size = 12
 
 def make_env(seed=0,board_size=12):
     def _init():
-        env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True,bfs_intensity=0.1)
+        env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True,bfs_intensity=1)
         env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
         env.seed(seed)
@@ -32,7 +32,7 @@ random_seed = random.randint(0,1e7)
 print(random_seed)
 env = DummyVecEnv([make_env(random_seed,board_size)])
 
-model = MaskablePPO.load('pth/final_33.zip', env=env, device=device)
+model = MaskablePPO.load('pth/final_52.zip', env=env, device=device)
 
 #print(model.observation_space.shape)
 
