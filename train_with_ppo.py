@@ -129,7 +129,7 @@ def load():
     lr_schedule = schedule_fn(5e-5, 1e-6)
     #clip_range_schedule = schedule_fn(0.150, 0.025)
     clip_range_schedule = schedule_fn(5e-5, 1e-6)
-    model = MaskablePPO.load("pth/final_53.zip", env=env, device=device)
+    model = MaskablePPO.load("pth/final_54.zip", env=env, device=device)
     model.gamma=0.98
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule
@@ -138,7 +138,7 @@ def load():
     model.batch_size = 512 * 8
     info_callback = MonitorCallback() 
     model.learn(total_timesteps=1e8,callback=[info_callback])
-    model.save('pth/final_54')
+    model.save('pth/final_55')
     env.close()
 
 if __name__ == '__main__':

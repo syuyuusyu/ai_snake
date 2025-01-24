@@ -41,7 +41,7 @@ class SnakeGame:
             self.screen = pygame.display.set_mode((self.screen_size, self.screen_size))
             pygame.display.set_caption('Snake Game by Edureka')
             self.clock = pygame.time.Clock()
-            self.display_intervial = 1
+            self.display_intervial = 5
             self.display_count = 0
             if not train_mode:
                 self.font_style = pygame.font.SysFont(None, 50)
