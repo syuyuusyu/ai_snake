@@ -23,7 +23,7 @@ def make_env(seed=0,board_size=12):
         env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True,bfs_intensity=bfs_intensity)
         env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
-        env.seed(seed)
+        env.reset(seed=seed)
         return env
     return _init
 seed_set = set()
@@ -33,7 +33,19 @@ random_seed = random.randint(0,1e7)
 print(random_seed)
 env = DummyVecEnv([make_env(random_seed,board_size)])
 
-model = MaskablePPO.load('pth/stable_4.zip', env=env, device=device)
+# Old checkpoints may contain gym-era serialized objects; override them at load time.
+model = MaskablePPO.load(
+    'pth/stable_4.zip',
+    env=env,
+    device=device,
+    custom_objects={
+        'observation_space': env.observation_space,
+        'action_space': env.action_space,
+        'learning_rate': 0.0,
+        'lr_schedule': lambda _: 0.0,
+        'clip_range': lambda _: 0.0,
+    },
+)
 
 #print(model.observation_space.shape)
 

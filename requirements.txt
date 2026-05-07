@@ -4,7 +4,7 @@ cycler==0.12.1
 filelock==3.16.1
 fonttools==4.56.0
 fsspec==2025.3.0
-gym==0.21.0
+gymnasium>=0.29,<1.1
 importlib-metadata==4.13.0
 importlib_resources==6.4.5
 Jinja2==3.1.6
@@ -21,9 +21,9 @@ pygame==2.6.1
 pyparsing==3.1.4
 python-dateutil==2.9.0.post0
 pytz==2025.1
-sb3-contrib==1.8.0
+sb3-contrib>=2.3,<3
 six==1.17.0
-stable-baselines3==1.8.0
+stable-baselines3>=2.3,<3
 sympy==1.13.3
 torch==2.4.1
 typing_extensions==4.12.2

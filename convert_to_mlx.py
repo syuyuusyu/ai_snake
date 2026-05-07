@@ -15,7 +15,15 @@ from sb3_contrib import MaskablePPO
 
 def export(model_path: str, out_path: str) -> None:
     print(f"Loading model from {model_path} ...")
-    model = MaskablePPO.load(model_path, device="cpu")
+    model = MaskablePPO.load(
+        model_path,
+        device="cpu",
+        custom_objects={
+            'learning_rate': 0.0,
+            'lr_schedule': lambda _: 0.0,
+            'clip_range': lambda _: 0.0,
+        },
+    )
     policy = model.policy
     sd = {k: v.cpu().numpy() for k, v in policy.state_dict().items()}
 

@@ -1,14 +1,10 @@
 import torch
-import sb3_contrib
-import stable_baselines3
-import gym
 
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor,SubprocVecEnv
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.callbacks import BaseCallback,CheckpointCallback
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.callbacks import BaseCallback
 import numpy as np
 import random
 from collections import defaultdict
@@ -32,7 +28,7 @@ def make_env(seed=0,board_size=12):
         env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True,bfs_intensity = bfs_intensity)
         env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
-        env.seed(seed)
+        env.reset(seed=seed)
         return env
     return _init
 
@@ -129,7 +125,18 @@ def load():
     lr_schedule = schedule_fn(2e-5, 1e-6)
     #clip_range_schedule = schedule_fn(0.150, 0.025)
     clip_range_schedule = schedule_fn(2e-5, 1e-6)
-    model = MaskablePPO.load("pth/stable_4.zip", env=env, device=device)
+    model = MaskablePPO.load(
+        "pth/stable_4.zip",
+        env=env,
+        device=device,
+        custom_objects={
+            'observation_space': env.observation_space,
+            'action_space': env.action_space,
+            'learning_rate': 0.0,
+            'lr_schedule': lambda _: 0.0,
+            'clip_range': lambda _: 0.0,
+        },
+    )
     model.gamma=0.98
     model.learning_rate = lr_schedule
     model.clip_range = clip_range_schedule

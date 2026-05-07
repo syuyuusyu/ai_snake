@@ -1,5 +1,5 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 from snake_game import SnakeGame
 from typing import Optional,Tuple
@@ -58,13 +58,14 @@ class SnakeEnv(gym.Env):
     def _get_obs(self):
         return self.game.get_obs()
     
-    def reset(self):
+    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
+        super().reset(seed=seed)
         self.rollout_snake_length = len(self.game.snake)
         self.beast_snake_length = max(self.beast_snake_length,len(self.game.snake))
         self.game.reset()
         obs = self._get_obs()
         self.step_count = 0
-        return obs
+        return obs, {}
     
     def calculate_penalty_factor(self,x, y, board_size):
         # 棋盘中心点
@@ -163,6 +164,7 @@ class SnakeEnv(gym.Env):
             self.is_new_rollout = False
 
         p_action =  self.game.directions.index(self.game.direction)
+        truncated = False
         self.step_count += 1
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
@@ -198,7 +200,8 @@ class SnakeEnv(gym.Env):
             #print(f'repeat:{self.rollout_snake_length} {self.game.food} {self.repeat_map}')
             #reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             #reward = reward * 0.1
-            terminated = True
+            truncated = True
+            terminated = False
 
         if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
             self.back_forward_count += 1
@@ -212,12 +215,12 @@ class SnakeEnv(gym.Env):
         if terminated:
             reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
             reward = reward * 0.1
-            return observation, reward, terminated, info
+            return observation, reward, terminated, truncated, info
         
         if state ==5:
             reward = 100
             self.victory_count += 1
-            return observation, reward, True, info
+            return observation, reward, True, truncated, info
 
         # Remove step-based rewards for longer snake
         if state == 0 and snake_length<=30:
@@ -233,7 +236,7 @@ class SnakeEnv(gym.Env):
             coefficient = 1
             self.step_count = 0
             reward = reward + coefficient * (snake_length / self.max_snake_length) + repeat_adjust
-        return observation, reward+repeat_peanlity, terminated, info
+        return observation, reward+repeat_peanlity, terminated, truncated, info
     
     def render(self, mode='human', **kwargs):
         self.game.draw()
