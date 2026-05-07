@@ -276,7 +276,7 @@ class SnakeGame:
                 self.draw()
             self.display_count = (self.display_count + 1) % self.display_intervial
             if not self.silent_mode:
-                self.clock.tick(60)
+                self.clock.tick(10)
         pygame.quit()
 
 if __name__ == "__main__":  
