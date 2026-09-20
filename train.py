@@ -1,7 +1,8 @@
-import torch
-from module import SnakeNet
 import random
 
+import torch
+
+from module import SnakeNet
 
 
 def predict(model, data_channel, device: torch.device = 'cpu',epsilon = 0.1) -> str:

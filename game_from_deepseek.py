@@ -1,5 +1,7 @@
-import pygame
 import random
+
+import pygame
+
 #from pygame.locals import *
 
 # 初始化游戏

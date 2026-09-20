@@ -1,12 +1,13 @@
-import torch
-import pygame
+import math
 import random
 from collections import deque
-from module import SnakeNet
-import torch.optim as optim
-import torch.nn.functional as F
-import math
 
+import pygame
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
+
+from module import SnakeNet
 
 board_size = 10
 play_ground =  [[0] * board_size for _ in range(board_size)]
@@ -160,7 +161,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 memory = deque(maxlen=10000)  # 经验回放缓冲区
 batch_size = 32
 loss_fn = F.mse_loss
-from train import train,predict,format_data,save_checkpoint,load_checkpoint
+from train import format_data, load_checkpoint, predict, save_checkpoint, train
 
 #load_checkpoint(model=model,optimizer=optimizer,filepath='pth/checkpoint_size_10_max_length_6_max_step_69_loop_count_24540',device=device)
 

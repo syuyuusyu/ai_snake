@@ -1,16 +1,15 @@
-import torch
-from typing import Tuple,Deque,List
-from collections import deque,defaultdict
-
-from sb3_contrib import MaskablePPO
-from sb3_contrib.common.wrappers import ActionMasker
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor,SubprocVecEnv
-from stable_baselines3.common.env_checker import check_env
-import numpy as np
 import math
 import random
 import re
+from collections import defaultdict, deque
+
+import numpy as np
+import torch
+from sb3_contrib import MaskablePPO
+from sb3_contrib.common.wrappers import ActionMasker
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
 
 print(torch.__version__)
 

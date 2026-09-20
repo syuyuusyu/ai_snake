@@ -1,9 +1,9 @@
-import pygame
-from collections import deque
-from typing import Tuple,Deque
 import random
-import math
+from collections import deque
+
 import numpy as np
+import pygame
+
 
 class SnakeGame:
 
@@ -18,12 +18,12 @@ class SnakeGame:
         print(f'SnakeGame {bfs_intensity}')
         self.board_size = board_size
         self.directions = ['up','down','left','right']
-        self.snake:Deque[Tuple[int,int]] = deque()
+        self.snake:deque[tuple[int,int]] = deque()
         self.food = (0,0)
         self.direction = 'left'
         self.game_quit = False
         self.game_loss = False
-        self.geme_win = False
+        self.game_win = False
         self.silent_mode = silent_mode
         self.train_mode = train_mode
         self.cell_size = 100
@@ -58,7 +58,7 @@ class SnakeGame:
         self.food = self.create_food()
         self.game_quit = False
         self.game_loss = False
-    
+        self.game_win = False
     def get_bfs_color(self):
         """根据强度系数计算BFS区域的颜色"""
         base_color = (250, 255, 250)  # 初始浅色
@@ -156,7 +156,7 @@ class SnakeGame:
         pygame.display.flip()      
 
 
-    def create_food(self)->Tuple[int,int]:
+    def create_food(self)->tuple[int,int]:
         # 生成所有可能的位置
         all_positions = {(x, y) for x in range(self.board_size) for y in range(self.board_size)}
         # 移除蛇占据的位置
@@ -179,7 +179,7 @@ class SnakeGame:
         x, y = random.choice(available_positions)
         return (x,y)
     
-    def step(self)-> Tuple[bool,int]:
+    def step(self)-> tuple[bool,int]:
         """Move the snake one step in the current direction.
         
         Returns:

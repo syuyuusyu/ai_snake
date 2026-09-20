@@ -1,7 +1,7 @@
-import pygame
 import random
 from collections import deque
 
+import pygame
 
 board_size = 20
 play_ground = []
