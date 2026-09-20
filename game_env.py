@@ -1,10 +1,13 @@
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
-from snake_game import SnakeGame
-from typing import Optional,Tuple
 import math
 from collections import defaultdict
+from typing import Optional
+
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+
+from snake_game import SnakeGame
+
 
 class SnakeEnv(gym.Env):
     state_dic = {
@@ -80,17 +83,17 @@ class SnakeEnv(gym.Env):
         penalty_factor = 1 + normalized_distance  # 中心为1，边缘最大为2
         return penalty_factor
     
-    def is_on_edge(self,point:Tuple[int,int])->bool:
+    def is_on_edge(self,point:tuple[int,int])->bool:
         x, y = point
         max_index = self.game.board_size -1
         return x == 0 or x == max_index or y == 0 or y == max_index
     
-    def is_on_right_and_down(self,point:Tuple[int,int])->bool:
+    def is_on_right_and_down(self,point:tuple[int,int])->bool:
         x,y = point
         max_index = self.game.board_size -1
         return x == max_index or y == max_index
     
-    def is_on_right(self,point:Tuple[int,int])->bool:
+    def is_on_right(self,point:tuple[int,int])->bool:
         x,y = point
         max_index = self.game.board_size -1
         return x == max_index
