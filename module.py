@@ -1,11 +1,9 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torch import nn
 
 
 class SnakeNet(nn.Module):
     def __init__(self, board_size):
-        super(SnakeNet, self).__init__()
+        super().__init__()
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),

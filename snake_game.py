@@ -258,9 +258,8 @@ class SnakeGame:
                         elif event.key == pygame.K_UP:
                             if self.direction != 'down':
                                 self.direction = 'up'
-                        elif event.key == pygame.K_DOWN:
-                            if self.direction != 'up':
-                                self.direction = 'down'
+                        elif event.key == pygame.K_DOWN and self.direction != 'up':
+                            self.direction = 'down'
             if self.display_count == 0:
                 if self.model is not None:
                     p_direction = self.direction
