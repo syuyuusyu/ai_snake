@@ -102,7 +102,7 @@ def export(model_path: str, out_path: str, board_size: int = 12, run_forward_che
             print(f"action logits shape   : {tuple(logits.shape)}")
 
         print("\nSwift 对齐提示：")
-        print(f"- Conv2d(inputChannels:) 应为 3")
+        print("- Conv2d(inputChannels:) 应为 3")
         print(f"- Linear(inputDimensions:) 应为 {flat.shape[1]}")
         print("- PyTorch Linear 权重 shape 是 (out, in)，MLX/Swift 侧通常需要转成 (in, out)")
 

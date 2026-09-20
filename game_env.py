@@ -1,6 +1,6 @@
 import math
 from collections import defaultdict
-from typing import Optional
+from typing import ClassVar
 
 import gymnasium as gym
 import numpy as np
@@ -10,7 +10,7 @@ from snake_game import SnakeGame
 
 
 class SnakeEnv(gym.Env):
-    state_dic = {
+    state_dic : ClassVar[dict[int, str]] = {
         0: 'the head leave the food',
         1: 'this head approch the food',
         2: 'hit wall',
@@ -61,7 +61,7 @@ class SnakeEnv(gym.Env):
     def _get_obs(self):
         return self.game.get_obs()
     
-    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
         self.rollout_snake_length = len(self.game.snake)
         self.beast_snake_length = max(self.beast_snake_length,len(self.game.snake))
@@ -94,7 +94,7 @@ class SnakeEnv(gym.Env):
         return x == max_index or y == max_index
     
     def is_on_right(self,point:tuple[int,int])->bool:
-        x,y = point
+        x,_ = point
         max_index = self.game.board_size -1
         return x == max_index
     

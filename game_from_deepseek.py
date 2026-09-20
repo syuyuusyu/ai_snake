@@ -1,4 +1,5 @@
 import random
+import sys
 
 import pygame
 
@@ -42,7 +43,7 @@ while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-            exit()
+            sys.exit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP and direction != 'down':
                 next_direction = 'up'
@@ -72,13 +73,13 @@ while True:
         head['y'] < 0 or head['y'] >= HEIGHT // BLOCK_SIZE):
         print('游戏结束，得分:', score)
         pygame.quit()
-        exit()
+        sys.exit()
 
     # 检查自身碰撞
     if head in snake_pos:
         print('游戏结束，得分:', score)
         pygame.quit()
-        exit()
+        sys.exit()
 
     # 插入新的头部
     snake_pos.insert(0, head)

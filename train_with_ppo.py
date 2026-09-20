@@ -1,7 +1,6 @@
 import random
 from collections import defaultdict
 
-import numpy as np
 import torch
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
@@ -34,7 +33,7 @@ def make_env(seed=0,board_size=12):
 
 class MonitorCallback(BaseCallback):
     def __init__(self, verbose=0):
-        super(MonitorCallback, self).__init__(verbose)
+        super().__init__(verbose)
         self.att = ['beast_snake_length','back_forward_count','hit_wall_count','collide_self_count','repeat_count','victory_count','cuttent_snake_length']
     def _on_rollout_start(self) -> None:
         train_info_list = self.training_env.env_method('get_train_info')
@@ -55,7 +54,7 @@ class MonitorCallback(BaseCallback):
 
         # 累加每个环境实例的值
         for train_info in train_info_list:
-            for key in average_info.keys():
+            for key in average_info:
                 average_info[key] += train_info[key]
             # dic = train_info['repeat_map']
             # for k,v in dic.items():
@@ -63,7 +62,7 @@ class MonitorCallback(BaseCallback):
                 #print(repeat_map)
                 
         # 计算平均值
-        for key in average_info.keys():
+        for key in average_info:
             average_info[key] /= num_envs
 
         # 打印结果
