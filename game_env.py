@@ -211,7 +211,7 @@ class SnakeEnv(gym.Env):
 
         progress = snake_length / self.max_snake_length
         if state == 5:
-            reward_victory = 10.0
+            reward_victory = 30.0
             self.victory_count += 1
         elif terminated:
             reward_death = -(1.0 + 4.0 * progress ** 2)
