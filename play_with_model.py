@@ -36,7 +36,7 @@ env = DummyVecEnv([make_env(random_seed,board_size)])
 
 # Old checkpoints may contain gym-era serialized objects; override them at load time.
 model = MaskablePPO.load(
-    'pth/stable_4.zip',
+    'pth/stable_5.zip',
     env=env,
     device=device,
     custom_objects={

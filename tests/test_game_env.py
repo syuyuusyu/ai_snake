@@ -21,12 +21,12 @@ class SnakeEnvStepTest(unittest.TestCase):
 
         _, reward, terminated, truncated, info = result
 
-        self.assertGreater(reward, 9.0)
+        self.assertGreater(reward, 29.0)
         self.assertTrue(terminated)
         self.assertFalse(truncated)
         self.assertEqual(info["step_state"], "Victory")
-        self.assertEqual(info["reward_victory"], 10.0)
-        self.assertEqual(info["task_reward"], 10.0)
+        self.assertEqual(info["reward_victory"], 30.0)
+        self.assertEqual(info["task_reward"], 30.0)
         self.assertEqual(info["reward_total"], reward)
         self.assertEqual(env.victory_count, 1)
 
