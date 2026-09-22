@@ -33,6 +33,7 @@ dependencies = [
   "six==1.17.0",
   "stable-baselines3>=2.3,<3",
   "sympy==1.13.3",
+  "tensorboard>=2.21.0",
   "torch==2.4.1",
   "typing_extensions==4.12.2",
   "tzdata==2025.2",

@@ -144,6 +144,36 @@ class SnakeGame:
                 if 0 <= new_position[0] < self.board_size and 0 <= new_position[1] < self.board_size:
                     queue.append(new_position)
         return reachable_spaces
+
+    def safety_score(self) -> float:
+        """Score how much of the board the head can safely reach."""
+        if not self.snake:
+            return 0.0
+
+        snake = list(self.snake)
+        head = snake[0]
+        tail = snake[-1]
+        blocked = set(snake[1:-1])
+        queue = deque([head])
+        reachable = set()
+
+        while queue:
+            position = queue.popleft()
+            if position in reachable or position in blocked:
+                continue
+
+            x, y = position
+            if not (0 <= x < self.board_size and 0 <= y < self.board_size):
+                continue
+
+            reachable.add(position)
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                queue.append((x + dx, y + dy))
+
+        traversable_count = self.board_size ** 2 - len(blocked)
+        reachable_ratio = len(reachable) / traversable_count
+        head_can_reach_tail = float(tail in reachable)
+        return 0.7 * reachable_ratio + 0.3 * head_can_reach_tail
     
     
     def draw(self):

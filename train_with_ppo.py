@@ -1,6 +1,7 @@
 import random
 from collections import defaultdict
 
+import numpy as np
 import torch
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
@@ -21,10 +22,18 @@ elif torch.backends.mps.is_available():
 
 repeat_map = defaultdict(int)
 bfs_intensity = 1
+discount_gamma = 0.995
+gae_lambda = 0.97
 
 def make_env(seed=0,board_size=12):
     def _init():
-        env = SnakeEnv(seed=seed,board_size=board_size, silent_mode=True,bfs_intensity = bfs_intensity)
+        env = SnakeEnv(
+            seed=seed,
+            board_size=board_size,
+            silent_mode=True,
+            bfs_intensity=bfs_intensity,
+            reward_gamma=discount_gamma,
+        )
         env = ActionMasker(env, SnakeEnv.mask_fn)
         env = Monitor(env)
         env.reset(seed=seed)
@@ -71,6 +80,23 @@ class MonitorCallback(BaseCallback):
         self.training_env.env_method('reset_rollout')
 
     def _on_step(self) -> bool:
+        infos = self.locals.get('infos', [])
+        metric_keys = [
+            'reward_food',
+            'reward_death',
+            'reward_victory',
+            'reward_timeout',
+            'reward_step',
+            'reward_safety',
+            'reward_total',
+            'safety_before',
+            'safety_after',
+            'snake_length',
+        ]
+        for key in metric_keys:
+            values = [info[key] for info in infos if key in info]
+            if values:
+                self.logger.record_mean(f'env/{key}', float(np.mean(values)))
         return True
 
 def schedule_fn(initial_value, final_value=0.0, schedule_type='linear'):
@@ -103,10 +129,11 @@ def main():
         n_steps=2048,
         batch_size=512*8,
         n_epochs=4,
-        gamma=0.7,
+        gamma=discount_gamma,
+        gae_lambda=gae_lambda,
         learning_rate=lr_schedule,
         clip_range=clip_range_schedule,
-        ent_coef = 0.1,
+        ent_coef=0.001,
         tensorboard_log="logs/"
     )
     #checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./models/', name_prefix='ppo_snake')
@@ -122,8 +149,7 @@ def load():
     env = SubprocVecEnv([make_env(seed,board_size) for seed in seed_set])
     #lr_schedule = schedule_fn(5e-4, 2.5e-6)
     lr_schedule = schedule_fn(2e-5, 1e-6)
-    #clip_range_schedule = schedule_fn(0.150, 0.025)
-    clip_range_schedule = schedule_fn(2e-5, 1e-6)
+    clip_range_schedule = schedule_fn(0.150, 0.030)
     model = MaskablePPO.load(
         "pth/stable_4.zip",
         env=env,
@@ -131,19 +157,21 @@ def load():
         custom_objects={
             'observation_space': env.observation_space,
             'action_space': env.action_space,
-            'learning_rate': 0.0,
-            'lr_schedule': lambda _: 0.0,
-            'clip_range': lambda _: 0.0,
+            'learning_rate': lr_schedule,
+            'lr_schedule': lr_schedule,
+            'clip_range': clip_range_schedule,
         },
     )
-    model.gamma=0.98
+    model.gamma = discount_gamma
+    model.gae_lambda = gae_lambda
     model.learning_rate = lr_schedule
+    model.lr_schedule = lr_schedule
     model.clip_range = clip_range_schedule
-    model.ent_coef = 0
+    model.ent_coef = 0.001
     #model.n_steps = 2048
     model.batch_size = 512 * 8
     info_callback = MonitorCallback() 
-    model.learn(total_timesteps=1e8,callback=[info_callback])
+    model.learn(total_timesteps=1e7,callback=[info_callback])
     model.save('pth/stable_5')
     env.close()
 

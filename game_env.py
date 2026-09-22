@@ -18,7 +18,7 @@ class SnakeEnv(gym.Env):
         4: 'eat food',
         5: 'Victory'
     }
-    def __init__(self, board_size=10, silent_mode=True, seed=0,bfs_intensity=0):
+    def __init__(self, board_size=10, silent_mode=True, seed=0,bfs_intensity=0, reward_gamma=0.995):
         super().__init__()
         print(f'SnakeEnv {bfs_intensity}')
         self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True,bfs_intensity=bfs_intensity)
@@ -26,7 +26,9 @@ class SnakeEnv(gym.Env):
         shape_size = self.game.board_size * self.game.scale+2*self.game.scale
         self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_size, shape_size), dtype=np.uint8)
         self.max_snake_length = board_size ** 2
-        self.max_growth = self.max_snake_length - len(self.game.snake)
+        self.reward_gamma = reward_gamma
+        self.safety_reward_weight = 0.5
+        self._safety_score = self.game.safety_score()
         self.step_count = 0
 
         self.beast_snake_length = 0
@@ -67,6 +69,7 @@ class SnakeEnv(gym.Env):
         self.beast_snake_length = max(self.beast_snake_length,len(self.game.snake))
         self.game.reset()
         obs = self._get_obs()
+        self._safety_score = self.game.safety_score()
         self.step_count = 0
         return obs, {}
     
@@ -169,6 +172,7 @@ class SnakeEnv(gym.Env):
         p_action =  self.game.directions.index(self.game.direction)
         truncated = False
         self.step_count += 1
+        safety_before = self._safety_score
         self.game.direction = self.game.directions[action]
         terminated,state = self.game.step()
         self.rollout_snake_length = len(self.game.snake)
@@ -177,34 +181,18 @@ class SnakeEnv(gym.Env):
         observation = self._get_obs()
         info = {
             'snake_length' : snake_length,
-            'step_count' : self.game.step_count,
+            'step_count' : self.step_count,
             'game_loop': self.game.game_loop,
             'step_state': SnakeEnv.state_dic[state],
             'repeat_map': self.repeat_map
         }
-        reward = self.reachable_space_reward()
-
         repeat_rate = 4
-        repeat_peanlity = 0
 
-
-
-        # if self.step_count >= self.max_snake_length:
-        #     x,y = self.game.snake[0]
-        #     penalty_factor = self.calculate_penalty_factor(x, y, self.game.board_size)
-        #     self.repeat_prossibility[x][y] = self.repeat_prossibility[x][y] - 0.001* penalty_factor
-        #     repeat_peanlity = self.repeat_prossibility[x][y]
-
-        if self.step_count % self.max_snake_length * repeat_rate ==0 :
-            #without eat food in step_count
+        if state == 4:
+            self.step_count = 0
+        elif not terminated and self.step_count >= self.max_snake_length * repeat_rate:
             self.repeat_count += 1
-            
-            #self.repeat_map[self.game.food] = self.repeat_map[self.game.food]+1
-            #print(f'repeat:{self.rollout_snake_length} {self.game.food} {self.repeat_map}')
-            #reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
-            #reward = reward * 0.1
             truncated = True
-            terminated = False
 
         if (p_action == 0 and action == 1) or (p_action == 1 and action == 0) or (p_action == 2 and action == 3) or (p_action == 3 and action == 2):
             self.back_forward_count += 1
@@ -215,31 +203,51 @@ class SnakeEnv(gym.Env):
             if state == 3:
                 self.collide_self_count += 1
 
-        if terminated:
-            reward = -math.pow(self.max_growth, (self.max_snake_length - snake_length) / self.max_growth)
-            reward = reward * 0.1
-            return observation, reward, terminated, truncated, info
-        
-        if state ==5:
-            reward = 100
-            self.victory_count += 1
-            return observation, reward, True, truncated, info
+        reward_food = 0.0
+        reward_death = 0.0
+        reward_victory = 0.0
+        reward_timeout = 0.0
+        reward_step = 0.0
 
-        # Remove step-based rewards for longer snake
-        if state == 0 and snake_length<=30:
-            reward = reward - 1 / snake_length
-        elif state == 1 and snake_length<=30:
-            reward = reward + 1 / snake_length
+        progress = snake_length / self.max_snake_length
+        if state == 5:
+            reward_victory = 10.0
+            self.victory_count += 1
+        elif terminated:
+            reward_death = -(1.0 + 4.0 * progress ** 2)
+        elif truncated:
+            reward_timeout = -1.0
         elif state == 4:
-            repeat_adjust = 0
-            # if len(self.game.snake[0]) <10:
-            #     repeat_probability = self.repeat_point_count.get(self.game.snake[0], 0)
-            #     if repeat_probability > 0:
-            #         repeat_adjust = self.calculate_coefficient(repeat_probability)
-            coefficient = 1
-            self.step_count = 0
-            reward = reward + coefficient * (snake_length / self.max_snake_length) + repeat_adjust
-        return observation, reward+repeat_peanlity, terminated, truncated, info
+            reward_food = 1.0
+        else:
+            reward_step = -0.002
+
+        safety_after = 0.0 if terminated else self.game.safety_score()
+        self._safety_score = safety_after
+        safety_reward = self.safety_reward_weight * (
+            self.reward_gamma * safety_after - safety_before
+        )
+        task_reward = (
+            reward_food
+            + reward_death
+            + reward_victory
+            + reward_timeout
+            + reward_step
+        )
+        reward = task_reward + safety_reward
+        info.update({
+            'reward_food': reward_food,
+            'reward_death': reward_death,
+            'reward_victory': reward_victory,
+            'reward_timeout': reward_timeout,
+            'reward_step': reward_step,
+            'reward_safety': safety_reward,
+            'task_reward': task_reward,
+            'reward_total': reward,
+            'safety_before': safety_before,
+            'safety_after': safety_after,
+        })
+        return observation, reward, terminated, truncated, info
     
     def render(self, mode='human', **kwargs):
         self.game.draw()
@@ -253,5 +261,4 @@ class SnakeEnv(gym.Env):
         #directions = ['up','down','left','right']
         arr = ['down','up','right','left']
         mask[arr.index(game.direction)] = 0
-        #return mask
-        return np.array([1, 1, 1, 1], dtype=np.uint8)
+        return np.asarray(mask, dtype=np.int8)
