@@ -1,8 +1,10 @@
 from torch import nn
 
+from board_config import DEFAULT_BOARD_HIGH, DEFAULT_BOARD_WIDTH
+
 
 class SnakeNet(nn.Module):
-    def __init__(self, board_size):
+    def __init__(self, board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH):
         super().__init__()
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
@@ -16,7 +18,7 @@ class SnakeNet(nn.Module):
         )
         self.flatten = nn.Flatten()
         self.prediction = nn.Sequential(
-            nn.Linear(64 * 2 * 2, 256),
+            nn.Linear(64 * (board_width // 4) * (board_high // 4), 256),
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.Linear(256, 4) # 输出4个方向的值，上、下、左、右

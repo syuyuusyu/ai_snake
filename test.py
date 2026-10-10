@@ -33,14 +33,14 @@ def normalize_repeat_map(repeat_map):
     return {key: value / total_count for key, value in repeat_map.items()}
 
 
-def calculate_reachable_space_from_tail(self, snake_head, snake_tail, snake_body, board_size):
+def calculate_reachable_space_from_tail(self, snake_head, snake_tail, snake_body, board_width, board_high):
     """
     计算从蛇尾开始的可达空间，避免蛇体封闭自己。
     """
-    reachable_spaces = self.bfs_reachable_area(snake_tail, snake_body, board_size)
-    return len(reachable_spaces) / (board_size ** 2)  # 可达空间比例，越大越好
+    reachable_spaces = self.bfs_reachable_area(snake_tail, snake_body, board_width, board_high)
+    return len(reachable_spaces) / (board_width * board_high)  # 可达空间比例，越大越好
 
-def bfs_reachable_area(self, start, snake_body, board_size):
+def bfs_reachable_area(self, start, snake_body, board_width, board_high):
     """
     使用 BFS 从给定的起点（蛇尾）查找可达空间。
     start: 搜索的起点，即蛇尾位置
@@ -59,17 +59,17 @@ def bfs_reachable_area(self, start, snake_body, board_size):
         # 添加邻居位置
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             new_position = (position[0] + dx, position[1] + dy)
-            if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
+            if 0 <= new_position[0] < board_width and 0 <= new_position[1] < board_high:
                 queue.append(new_position)
 
     return reachable_spaces
 #---------
-def calculate_reachable_space_reward(self, snake_head, snake_body, board_size):
-    reachable_spaces = self.bfs_reachable_area(snake_head, snake_body, board_size)
+def calculate_reachable_space_reward(self, snake_head, snake_body, board_width, board_high):
+    reachable_spaces = self.bfs_reachable_area(snake_head, snake_body, board_width, board_high)
     # 可达空间越大奖励越高
-    return len(reachable_spaces) / (board_size ** 2)
+    return len(reachable_spaces) / (board_width * board_high)
 
-def bfs_reachable_area(self, snake_head, snake_body, board_size):
+def bfs_reachable_area(self, snake_head, snake_body, board_width, board_high):
     # 使用 BFS 查找蛇头位置周围的可达区域
     queue = [snake_head]
     visited = set(snake_body)
@@ -85,7 +85,7 @@ def bfs_reachable_area(self, snake_head, snake_body, board_size):
         # 添加邻居位置
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             new_position = (position[0] + dx, position[1] + dy)
-            if 0 <= new_position[0] < board_size and 0 <= new_position[1] < board_size:
+            if 0 <= new_position[0] < board_width and 0 <= new_position[1] < board_high:
                 queue.append(new_position)
 
     return reachable_spaces

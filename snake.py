@@ -1,9 +1,16 @@
+import argparse
 import random
 from collections import deque
 
 import pygame
 
-board_size = 20
+from board_config import add_board_arguments, validate_board_dimensions
+
+parser = argparse.ArgumentParser()
+add_board_arguments(parser)
+args = parser.parse_args()
+board_width, board_high = args.board_width, args.board_high
+validate_board_dimensions(board_width, board_high)
 play_ground = []
 
 class Block():
@@ -25,12 +32,12 @@ class Block():
         elif self.direction == 'down':
             y += 1
         if x < 0:
-            x = board_size -1
-        if x > board_size-1:
+            x = board_width -1
+        if x > board_width-1:
             x = 0
         if y < 0:
-            y = board_size-1
-        if y > board_size -1:
+            y = board_high-1
+        if y > board_high -1:
             y = 0
         bead = False
         for food in foods:
@@ -39,7 +46,7 @@ class Block():
                 new_head.direction = self.direction
                 snake.appendleft(new_head)
                 foods.pop()
-                foods.appendleft(Food.create(board_size,snake))
+                foods.appendleft(Food.create(board_width,board_high,snake))
                 return bead          
         snake.pop()
         for block in snake:
@@ -56,9 +63,9 @@ class Food(Block):
         self.value = 2
     
     @classmethod
-    def create(cls, board_size, snake) -> 'Food':
+    def create(cls, board_width, board_high, snake) -> 'Food':
         # 生成所有可能的位置
-        all_positions = {(x, y) for x in range(board_size) for y in range(board_size)}
+        all_positions = {(x, y) for x in range(board_width) for y in range(board_high)}
         # 移除蛇占据的位置
         snake_positions = {(block.x, block.y) for block in snake}
         available_positions = list(all_positions - snake_positions)
@@ -69,17 +76,17 @@ class Food(Block):
         return cls(x, y)
 
 def init(foods,snake):
-    for _ in range(0,board_size):
-        play_ground.append([0]*board_size)
-    x, y = int(board_size/2),int(board_size/2)
+    for _ in range(0,board_width):
+        play_ground.append([0]*board_high)
+    x, y = min(board_width // 2, board_width - 4), board_high // 2
     snake.append(Block(x,y))
     for i in range(1,4):
         snake.append(Block(x+i,y))
-    foods.appendleft(Food.create(board_size=board_size,snake=snake))
+    foods.appendleft(Food.create(board_width=board_width,board_high=board_high,snake=snake))
 
 def update_play_ground(foods,snake):
-    for i in range(0,board_size):
-        play_ground[i] = [0]*board_size  
+    for i in range(0,board_width):
+        play_ground[i] = [0]*board_high
     for food in foods:
         play_ground[food.x][food.y] = food.value
     for i, block in enumerate(snake):
@@ -113,9 +120,9 @@ color_dic = {
 }
 
 screen_width = 1000
-block_size = screen_width/board_size
+block_size = screen_width/board_width
 pygame.init()
-screen = pygame.display.set_mode((screen_width, screen_width))
+screen = pygame.display.set_mode((screen_width, round(block_size * board_high)))
 pygame.display.set_caption('Snake Game by Edureka')
 clock = pygame.time.Clock()
 

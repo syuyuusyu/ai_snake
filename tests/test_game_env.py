@@ -9,7 +9,7 @@ from game_env import SnakeEnv
 
 class SnakeEnvStepTest(unittest.TestCase):
     def test_victory_receives_victory_reward(self):
-        env = SnakeEnv(board_size=4)
+        env = SnakeEnv(board_width=4, board_high=4)
         observation = np.zeros(env.observation_space.shape, dtype=np.uint8)
 
         with (
@@ -31,8 +31,8 @@ class SnakeEnvStepTest(unittest.TestCase):
         self.assertEqual(env.victory_count, 1)
 
     def test_death_penalty_grows_with_snake_length(self):
-        short_env = SnakeEnv(board_size=12)
-        long_env = SnakeEnv(board_size=12)
+        short_env = SnakeEnv(board_width=12, board_high=12)
+        long_env = SnakeEnv(board_width=12, board_high=12)
         long_env.game.snake = deque((index, 0) for index in range(80))
 
         def take_terminal_step(env):
@@ -53,7 +53,7 @@ class SnakeEnvStepTest(unittest.TestCase):
         )
 
     def test_timeout_uses_full_repeat_window(self):
-        env = SnakeEnv(board_size=4)
+        env = SnakeEnv(board_width=4, board_high=4)
         env.step_count = env.max_snake_length * 4 - 1
         observation = np.zeros(env.observation_space.shape, dtype=np.uint8)
 
@@ -69,7 +69,7 @@ class SnakeEnvStepTest(unittest.TestCase):
         self.assertEqual(info["reward_timeout"], -1.0)
 
     def test_action_mask_disallows_reverse_direction(self):
-        env = SnakeEnv(board_size=4)
+        env = SnakeEnv(board_width=4, board_high=4)
         env.game.direction = "left"
 
         np.testing.assert_array_equal(
@@ -78,7 +78,7 @@ class SnakeEnvStepTest(unittest.TestCase):
         )
 
     def test_safety_score_detects_a_trapped_head(self):
-        env = SnakeEnv(board_size=4)
+        env = SnakeEnv(board_width=4, board_high=4)
         env.game.snake = deque([
             (1, 1),
             (0, 1),

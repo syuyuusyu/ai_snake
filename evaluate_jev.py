@@ -9,6 +9,7 @@ from collections import Counter, deque
 from pathlib import Path
 from statistics import mean, median
 
+from board_config import add_board_arguments
 from game_env import SnakeEnv
 from play_with_jev import OPPOSITE, ask_jev, build_request, build_state
 
@@ -27,8 +28,8 @@ def choose_move(game, state, model):
     return move, None, "no_safe_move"
 
 
-def run_episode(seed, board_size, model, max_steps, trace_steps):
-    env = SnakeEnv(board_size=board_size, silent_mode=True, seed=seed)
+def run_episode(seed, board_width, board_high, model, max_steps, trace_steps):
+    env = SnakeEnv(board_width=board_width, board_high=board_high, silent_mode=True, seed=seed)
     history = deque(maxlen=trace_steps)
     max_length = len(env.game.snake)
     try:
@@ -74,14 +75,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seeds", type=int, default=50, help="Number of consecutive seeds")
     parser.add_argument("--start-seed", type=int, default=0)
-    parser.add_argument("--board-size", type=int, default=12)
+    add_board_arguments(parser)
     parser.add_argument("--model", default="typesafe/jev-1.13")
     parser.add_argument("--max-steps", type=int, default=10000)
     parser.add_argument("--trace-steps", type=int, default=20)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
-    if args.seeds < 1 or args.board_size < 7 or args.max_steps < 1 or args.trace_steps < 1:
-        parser.error("--seeds, --max-steps and --trace-steps must be positive; --board-size must be >= 7")
+    if args.seeds < 1 or args.max_steps < 1 or args.trace_steps < 1:
+        parser.error("--seeds, --max-steps and --trace-steps must be positive")
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
         parser.error("--output-dir must be empty to keep runs separate")
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -92,7 +93,7 @@ def main():
     with (args.output_dir / "episodes.jsonl").open("w") as episodes_file:
         for seed in range(args.start_seed, args.start_seed + args.seeds):
             result, trace = run_episode(
-                seed, args.board_size, args.model, args.max_steps, args.trace_steps
+                seed, args.board_width, args.board_high, args.model, args.max_steps, args.trace_steps
             )
             results.append(result)
             episodes_file.write(json.dumps(result) + "\n")
@@ -109,7 +110,8 @@ def main():
     outcomes = Counter(result["outcome"] for result in results)
     summary = {
         "model": args.model,
-        "board_size": args.board_size,
+        "board_width": args.board_width,
+        "board_high": args.board_high,
         "start_seed": args.start_seed,
         "seeds": args.seeds,
         "max_steps": args.max_steps,

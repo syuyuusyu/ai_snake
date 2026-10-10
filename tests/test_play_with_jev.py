@@ -10,12 +10,13 @@ from snake_game import SnakeGame
 
 
 class PlayWithJevTest(unittest.TestCase):
-    def game(self, snake, direction, food, board_size=4):
+    def game(self, snake, direction, food, board_width=4, board_high=4):
         game = SimpleNamespace(
             snake=deque(snake),
             direction=direction,
             food=food,
-            board_size=board_size,
+            board_width=board_width,
+            board_high=board_high,
             directions=["up", "down", "left", "right"],
         )
         game.bfs_reachable_area = SnakeGame.bfs_reachable_area.__get__(game)
@@ -67,7 +68,7 @@ class PlayWithJevTest(unittest.TestCase):
                 if isinstance(cell, int):
                     snake[cell] = (x, y)
 
-        state = build_state(self.game(snake, "right", (1, 9), board_size=12))
+        state = build_state(self.game(snake, "right", (1, 9), board_width=12, board_high=12))
 
         self.assertEqual(set(state["safe_moves"]), {"up", "down"})
         self.assertEqual(state["board_rows"][2][8], "S")
@@ -81,7 +82,7 @@ class PlayWithJevTest(unittest.TestCase):
     def test_tail_bfs_does_not_mark_other_side_of_body(self):
         snake = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (0, 4)]
 
-        state = build_state(self.game(snake, "left", (4, 4), board_size=5))
+        state = build_state(self.game(snake, "left", (4, 4), board_width=5, board_high=5))
 
         self.assertEqual(state["board_rows"][0][0], "S")
         self.assertEqual(state["board_rows"][2][2], ".")
@@ -92,7 +93,7 @@ class PlayWithJevTest(unittest.TestCase):
         snake = [(7, 6), (6, 6), (6, 7), (6, 8), (7, 8), (8, 8),
                  (8, 7), (9, 7), (9, 6), (9, 5), (9, 4), (9, 3),
                  (9, 2), (9, 1), (9, 0), (8, 0)]
-        game = self.game(snake, "right", (11, 11), board_size=12)
+        game = self.game(snake, "right", (11, 11), board_width=12, board_high=12)
         state = build_state(game)
         request = build_request(state, "typesafe/jev-1.13")
 
@@ -115,7 +116,7 @@ class PlayWithJevTest(unittest.TestCase):
         self.assertEqual(state["safe_moves"]["right"]["target"], [2, 1])
 
     def test_final_food_is_marked_as_win(self):
-        game = self.game([(0, 0), (1, 0), (1, 1)], "left", (0, 1), board_size=2)
+        game = self.game([(0, 0), (1, 0), (1, 1)], "left", (0, 1), board_width=2, board_high=2)
 
         state = build_state(game)
 

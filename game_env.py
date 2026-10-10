@@ -6,6 +6,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from board_config import DEFAULT_BOARD_HIGH, DEFAULT_BOARD_WIDTH
 from snake_game import SnakeGame
 
 
@@ -18,14 +19,15 @@ class SnakeEnv(gym.Env):
         4: 'eat food',
         5: 'Victory'
     }
-    def __init__(self, board_size=10, silent_mode=True, seed=0,bfs_intensity=0, reward_gamma=0.995):
+    def __init__(self, board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH, silent_mode=True, seed=0,bfs_intensity=0, reward_gamma=0.995):
         super().__init__()
         print(f'SnakeEnv {bfs_intensity}')
-        self.game = SnakeGame(board_size=board_size, silent_mode=silent_mode, seed=seed, train_mode=True,bfs_intensity=bfs_intensity)
+        self.game = SnakeGame(board_width=board_width, board_high=board_high, silent_mode=silent_mode, seed=seed, train_mode=True,bfs_intensity=bfs_intensity)
         self.action_space = spaces.Discrete(4)
-        shape_size = self.game.board_size * self.game.scale+2*self.game.scale
-        self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_size, shape_size), dtype=np.uint8)
-        self.max_snake_length = board_size ** 2
+        shape_width = (self.game.board_width + 2) * self.game.scale
+        shape_high = (self.game.board_high + 2) * self.game.scale
+        self.observation_space = spaces.Box(low=0, high=255, shape= (3,shape_width, shape_high), dtype=np.uint8)
+        self.max_snake_length = self.game.board_width * self.game.board_high
         self.reward_gamma = reward_gamma
         self.safety_reward_weight = 0.5
         self._safety_score = self.game.safety_score()
@@ -38,11 +40,11 @@ class SnakeEnv(gym.Env):
         self.repeat_count = 0
         self.victory_count = 0
         self.is_new_rollout = False
-        self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.float16)
+        self.repeat_prossibility = np.full((self.game.board_width,self.game.board_high),0,dtype=np.float16)
         self.rollout_snake_length = len(self.game.snake)
         self.repeat_map = defaultdict(int)
         self.repeat_point_count  = self.normalize_repeat_map({
-            (11, 11):16841754,
+            (self.game.board_width - 1, self.game.board_high - 1):16841754,
         })
     
     def get_train_info(self):
@@ -67,15 +69,15 @@ class SnakeEnv(gym.Env):
         super().reset(seed=seed)
         self.rollout_snake_length = len(self.game.snake)
         self.beast_snake_length = max(self.beast_snake_length,len(self.game.snake))
-        self.game.reset()
+        self.game.reset(seed=seed)
         obs = self._get_obs()
         self._safety_score = self.game.safety_score()
         self.step_count = 0
         return obs, {}
     
-    def calculate_penalty_factor(self,x, y, board_size):
+    def calculate_penalty_factor(self,x, y):
         # 棋盘中心点
-        cx, cy = board_size // 2, board_size // 2
+        cx, cy = self.game.board_width // 2, self.game.board_high // 2
         # 计算欧几里得距离
         distance = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
         # 计算最大可能距离（从中心到角落）
@@ -88,18 +90,15 @@ class SnakeEnv(gym.Env):
     
     def is_on_edge(self,point:tuple[int,int])->bool:
         x, y = point
-        max_index = self.game.board_size -1
-        return x == 0 or x == max_index or y == 0 or y == max_index
+        return x == 0 or x == self.game.board_width - 1 or y == 0 or y == self.game.board_high - 1
     
     def is_on_right_and_down(self,point:tuple[int,int])->bool:
         x,y = point
-        max_index = self.game.board_size -1
-        return x == max_index or y == max_index
+        return x == self.game.board_width - 1 or y == self.game.board_high - 1
     
     def is_on_right(self,point:tuple[int,int])->bool:
         x,_ = point
-        max_index = self.game.board_size -1
-        return x == max_index
+        return x == self.game.board_width - 1
     
     def normalize_repeat_map(self,repeat_map):
         """将 repeat_map 归一化为概率形式"""
@@ -166,7 +165,7 @@ class SnakeEnv(gym.Env):
             self.collide_self_count = 0
             self.repeat_count = 0
             self.victory_count = 0
-            self.repeat_prossibility = np.full((self.game.board_size,self.game.board_size),0,dtype=np.float16)
+            self.repeat_prossibility = np.full((self.game.board_width,self.game.board_high),0,dtype=np.float16)
             self.is_new_rollout = False
 
         p_action =  self.game.directions.index(self.game.direction)

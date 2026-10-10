@@ -17,6 +17,13 @@ import torch
 from gymnasium import spaces
 from sb3_contrib import MaskablePPO
 
+from board_config import (
+    DEFAULT_BOARD_HIGH,
+    DEFAULT_BOARD_WIDTH,
+    add_board_arguments,
+    observation_scale,
+)
+
 
 def print_header(title: str) -> None:
     print(f"\n{'=' * 16} {title} {'=' * 16}")
@@ -26,17 +33,18 @@ def describe_array(name: str, value: np.ndarray) -> None:
     print(f"{name:<16} shape={tuple(value.shape)!s:<18} dtype={value.dtype}")
 
 
-def export(model_path: str, out_path: str, board_size: int = 12, run_forward_check: bool = True) -> None:
-    scale = max(1, (32 + board_size - 1) // board_size)
-    shape_size = board_size * scale + 2 * scale
+def export(model_path: str, out_path: str, board_width: int = DEFAULT_BOARD_WIDTH, board_high: int = DEFAULT_BOARD_HIGH, run_forward_check: bool = True) -> None:
+    scale = observation_scale(board_width, board_high)
+    shape_width = (board_width + 2) * scale
+    shape_high = (board_high + 2) * scale
 
     print_header("CONFIG")
     print(f"model_path   : {model_path}")
     print(f"out_path     : {out_path}")
-    print(f"board_size   : {board_size}")
+    print(f"board_width  : {board_width}")
+    print(f"board_high   : {board_high}")
     print(f"scale        : {scale}")
-    print(f"shape_size   : {shape_size}")
-    print(f"obs shape    : (3, {shape_size}, {shape_size})")
+    print(f"obs shape    : (3, {shape_width}, {shape_high})")
 
     print_header("LOAD MODEL")
     model = MaskablePPO.load(
@@ -46,7 +54,7 @@ def export(model_path: str, out_path: str, board_size: int = 12, run_forward_che
             "observation_space": spaces.Box(
                 low=0,
                 high=255,
-                shape=(3, shape_size, shape_size),
+                shape=(3, shape_width, shape_high),
                 dtype=np.uint8,
             ),
             "action_space": spaces.Discrete(4),
@@ -86,7 +94,7 @@ def export(model_path: str, out_path: str, board_size: int = 12, run_forward_che
 
     if run_forward_check:
         print_header("FORWARD SHAPE CHECK")
-        obs = torch.zeros(1, 3, shape_size, shape_size, dtype=torch.float32)
+        obs = torch.zeros(1, 3, shape_width, shape_high, dtype=torch.float32)
         with torch.no_grad():
             x = policy.pi_features_extractor.cnn(obs)
             print(f"cnn output shape      : {tuple(x.shape)}")
@@ -145,7 +153,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="pth/stable_4.zip")
     parser.add_argument("--out", default="pth/snake_policy.safetensors")
-    parser.add_argument("--board-size", type=int, default=12)
+    add_board_arguments(parser)
     parser.add_argument(
         "--skip-forward-check",
         action="store_true",
@@ -156,7 +164,8 @@ def main() -> None:
     export(
         model_path=args.model,
         out_path=args.out,
-        board_size=args.board_size,
+        board_width=args.board_width,
+        board_high=args.board_high,
         run_forward_check=not args.skip_forward_check,
     )
 

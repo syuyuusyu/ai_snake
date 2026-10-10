@@ -1,3 +1,4 @@
+import argparse
 import random
 from collections import defaultdict
 
@@ -9,6 +10,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
+from board_config import DEFAULT_BOARD_HIGH, DEFAULT_BOARD_WIDTH, add_board_arguments
 from game_env import SnakeEnv
 
 device = 'cpu'
@@ -25,11 +27,12 @@ bfs_intensity = 1
 discount_gamma = 0.995
 gae_lambda = 0.97
 
-def make_env(seed=0,board_size=12):
+def make_env(seed=0, board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH):
     def _init():
         env = SnakeEnv(
             seed=seed,
-            board_size=board_size,
+            board_width=board_width,
+            board_high=board_high,
             silent_mode=True,
             bfs_intensity=bfs_intensity,
             reward_gamma=discount_gamma,
@@ -224,8 +227,12 @@ class FixedSeedEvalCallback(BaseCallback):
         stop_score_ratio=0.8,
         degradation_patience=2,
         verbose=1,
+        board_width=DEFAULT_BOARD_WIDTH,
+        board_high=DEFAULT_BOARD_HIGH,
     ):
         super().__init__(verbose)
+        self.board_width = board_width
+        self.board_high = board_high
         self.eval_freq = eval_freq
         self.seeds = list(seeds)
         self.best_model_path = best_model_path
@@ -237,11 +244,15 @@ class FixedSeedEvalCallback(BaseCallback):
         self.stopped_for_degradation = False
         self.eval_env = None
         self.eval_policy = None
+        # Read by agent_bridge.AgentBridgeCallback; harmless when unused.
+        self.last_metrics = None
+        self.n_evals = 0
 
     def _on_training_start(self) -> None:
         self.eval_env = SnakeEnv(
             seed=self.seeds[0],
-            board_size=board_size,
+            board_width=self.board_width,
+            board_high=self.board_high,
             silent_mode=True,
             bfs_intensity=bfs_intensity,
             reward_gamma=discount_gamma,
@@ -308,7 +319,7 @@ class FixedSeedEvalCallback(BaseCallback):
         max_lengths = np.asarray(max_lengths, dtype=np.float32)
         episode_count = len(self.seeds)
         victory_rate = cause_counts['Victory'] / episode_count
-        score = float(np.mean(max_lengths) + board_size ** 2 * victory_rate)
+        score = float(np.mean(max_lengths) + self.eval_env.max_snake_length * victory_rate)
         metrics = {
             'score': score,
             'mean_max_length': float(np.mean(max_lengths)),
@@ -322,6 +333,8 @@ class FixedSeedEvalCallback(BaseCallback):
             'self_death_rate': cause_counts['collied self'] / episode_count,
             'timeout_rate': cause_counts['timeout'] / episode_count,
         }
+        self.last_metrics = {**metrics, 'timesteps': self.num_timesteps}
+        self.n_evals += 1
         for key, value in metrics.items():
             self.logger.record(f'eval/{key}', value)
         self.logger.dump(self.num_timesteps)
@@ -367,12 +380,11 @@ def schedule_fn(initial_value, final_value=0.0, schedule_type='linear'):
     return scheduler
 
 
-board_size = 12
-def main():
+def main(board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH):
     seed_set = set()
     while len(seed_set) < 32:
         seed_set.add(random.randint(0,1e5))
-    env = DummyVecEnv([make_env(seed,board_size) for seed in seed_set])
+    env = DummyVecEnv([make_env(seed, board_width, board_high) for seed in seed_set])
     lr_schedule = schedule_fn(5e-4, 2.5e-6)
     clip_range_schedule = schedule_fn(0.150, 0.025) 
     model = MaskablePPO(
@@ -396,11 +408,11 @@ def main():
     model.save('pth/ppo_snake_early')
     env.close()
 
-def load():
+def load(board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH):
     seed_set = set()
     while len(seed_set) < 128:
         seed_set.add(random.randint(0,1e7))
-    env = SubprocVecEnv([make_env(seed,board_size) for seed in seed_set])
+    env = SubprocVecEnv([make_env(seed, board_width, board_high) for seed in seed_set])
     #lr_schedule = schedule_fn(5e-4, 2.5e-6)
     lr_schedule = schedule_fn(3e-6, 1e-6)
     clip_range_schedule = schedule_fn(0.080, 0.030)
@@ -441,6 +453,8 @@ def load():
         eval_freq=max(500_000 // env.num_envs, 1),
         seeds=range(32),
         best_model_path='pth/stable_6_best',
+        board_width=board_width,
+        board_high=board_high,
     )
     try:
         model.learn(
@@ -453,7 +467,10 @@ def load():
         env.close()
 
 if __name__ == '__main__':
-    load()
+    parser = argparse.ArgumentParser()
+    add_board_arguments(parser)
+    args = parser.parse_args()
+    load(board_width=args.board_width, board_high=args.board_high)
 
     for k,v in repeat_map.items():
         print(f'{k}:{v},')

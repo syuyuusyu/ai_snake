@@ -33,7 +33,7 @@
 |---|---|---|
 | L0 | 屏蔽致死动作（训练和推理都加） | 0 |
 | L1 | BFS 门控：`risk`（切断尾巴）和 `loop`（同一状态重复出现），其余 99.7% 的步直接放过 | 0 |
-| L2 | 按 8 种棋盘对称归一化后查缓存，命中直接用 | 0 |
+| L2 | 按棋盘对称归一化后查缓存（正方形 8 种，矩形 4 种），命中直接用 | 0 |
 | L3 | 用当前策略从每个安全步往后推演 200 步。有的分支死、有的分支活，或者分数差至少 1 个食物，就直接定答案 | 0 |
 | L4 | 推演分不出高下，才调 Jev。并发请求，每轮最多 `--jev-budget` 次（默认 32） | 1 |
 | 抽检 | L3 已经定了答案的状态，再按 5% 抽样问一次 Jev，统计它和推演结论的一致率 | 少量 |
@@ -66,9 +66,10 @@
 | `train_with_jev.py` | 从 stable_4 继续训练，带 BC loss；最佳模型存到 `pth/stable_7_jev_best` |
 | `simulate_gates.py` | 复现上面的对比实验：`python simulate_gates.py {safe\|tail\|oracle} 50 out.jsonl 0` |
 | `evaluations/stable_4_gating/` | 上面数据的说明和逐局结果 |
-| `tests/test_jev_assist.py` | 5 个单元测试 |
+| `tests/test_jev_assist.py` | 安全 mask、门控及对称缓存的基础测试 |
+| `tests/test_jev_training.py` | 调用预算、缓存来源、并发隔离、BC 更新、保存及重新加载测试 |
 
-验证状态：用 mock Jev 跑通了几轮训练，门控、去重、推演、标注、BC loss 都正常。真实 Jev 接口尚未调用，完整训练尚未在本机跑过。
+验证状态：已通过模拟 Jev 测试及强制门控的 PPO + 后台标注 + BC 集成测试；从 `stable_4` 完成了 1,024 步 `--no-jev` 流程验证，检查了评估、日志、最佳/最终模型保存。该短运行没有触发门控，BC 路径由集成测试验证。真实 Jev 接口和完整 500 万步训练尚未运行；没有新的效果结论。
 
 ## 运行步骤
 
@@ -81,3 +82,31 @@
 ```
 
 对比两组的 `eval/score`、胜局数，以及实验组的 `jev/jev_calls`、`jev/audit_agree_rate`，再决定是否保留 Jev。
+
+
+## 实现与配置
+
+- 棋盘默认值统一取自 `board_config.py`，为 `board_width=12`、`board_high=12`；入口的 `--board-width`、`--board-high` 会传到训练、推演、缓存和评估环境。
+- 每个环境使用独立的食物随机数发生器。快照同时保存随机数状态和距上次吃食物的步数，保证各推演分支从同一状态开始，后台标注不改变训练环境。
+- 缓存记录标签来源，推演标签权重保持 1.0，Jev 标签保持 0.5。键包含宽高、方向及超时步数。旧缓存中没有来源的记录不会复用。
+- `--no-jev` 不发送请求，也不使用 Jev 来源的缓存标签；默认使用 `evaluations/ctrl_cache.jsonl`，实验组默认使用 `evaluations/jev_cache.jsonl`。
+- 训练请求每次只尝试一次，网络失败跳过该标签，不自动重试。`--jev-budget` 包含抽检，因此不会因隐藏重试突破请求预算；独立 Jev 游玩脚本保留原有重试行为。
+- 每次只允许一个后台标注批次使用冻结策略；后台忙时丢弃新快照并记录 `jev/dropped_busy`，避免积压。退出前等待最后一批标签并执行可用的 BC 更新，再做最终评估和保存。
+- 默认评估种子为 0–49，每 500,000 个环境步评估；支持 `--eval-episodes`、`--eval-max-steps` 调整，`--eval-freq 0` 关闭评估。
+- 输出包含 `<save>_best.zip`（启用评估时）、`<save>_final.zip`；`logs/<save 文件名>/` 保存 TensorBoard、`progress.csv`、`config.json` 和 `jev_stats.json`，可用 `--log-dir` 修改。
+- 最终模型不包含内存标签池，可以用标准 `MaskablePPO.load()` 加载。推理入口已使用相同的致死动作 mask：
+
+```bash
+.venv/bin/python play_with_model.py --model pth/stable_7_jev_best.zip
+```
+
+快速验证命令（只验证流程，不代表训练效果；输出写到 `/tmp`）：
+
+```bash
+.venv/bin/python train_with_jev.py --no-jev --device cpu \
+  --envs 1 --timesteps 1024 --n-steps 32 --batch-size 32 \
+  --horizon 8 --max-labels 8 --bc-min-size 1 --bc-batch-size 8 --bc-steps 1 \
+  --eval-freq 512 --eval-episodes 2 --eval-max-steps 64 \
+  --save /tmp/snake-jev-smoke/model --cache /tmp/snake-jev-smoke/cache.jsonl \
+  --log-dir /tmp/snake-jev-smoke/logs
+```

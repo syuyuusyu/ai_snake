@@ -32,7 +32,7 @@ class EvaluateJevTest(unittest.TestCase):
             return next(iter(request["state"]["safe_moves"])), 0.5
 
         with patch("evaluate_jev.ask_jev", side_effect=first_choice):
-            result, trace = run_episode(7, 7, "typesafe/jev-1.13", 2, 20)
+            result, trace = run_episode(7, 7, 7, "typesafe/jev-1.13", 2, 20)
 
         self.assertEqual(result["seed"], 7)
         self.assertEqual(result["outcome"], "max_steps")

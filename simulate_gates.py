@@ -10,17 +10,31 @@ Gate points (where an advisor would be called):
   G1 risk  : n_safe>1 and the PPO move breaks tail reachability (or lands in smaller region) while an alternative does not
   G2 loop  : the exact (snake, food) state repeats -> policy is cycling
 """
-import copy, json, random, sys
+import argparse
+import copy
+import json
+import random
 from collections import deque
-import numpy as np, torch
+
+import numpy as np
+import torch
 from sb3_contrib import MaskablePPO
+
+from board_config import add_board_arguments
 from game_env import SnakeEnv
 
-MODE = sys.argv[1]; N = int(sys.argv[2]); OUT = sys.argv[3]
-SEEDS = range(int(sys.argv[4]) if len(sys.argv) > 4 else 0, (int(sys.argv[4]) if len(sys.argv) > 4 else 0) + N)
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("mode", choices=["safe", "tail", "oracle"])
+parser.add_argument("seeds", type=int)
+parser.add_argument("out")
+parser.add_argument("start_seed", type=int, nargs="?", default=0)
+add_board_arguments(parser)
+args = parser.parse_args()
+MODE, N, OUT = args.mode, args.seeds, args.out
+SEEDS = range(args.start_seed, args.start_seed + N)
 DIRS = ['up', 'down', 'left', 'right']; D = {'up': (0, -1), 'down': (0, 1), 'left': (-1, 0), 'right': (1, 0)}
 OPP = {'up': 'down', 'down': 'up', 'left': 'right', 'right': 'left'}
-env0 = SnakeEnv(board_size=12, silent_mode=True, seed=0, bfs_intensity=1)
+env0 = SnakeEnv(board_width=args.board_width, board_high=args.board_high, silent_mode=True, seed=0, bfs_intensity=1)
 model = MaskablePPO.load("pth/stable_4.zip", device="cpu", custom_objects={
     "observation_space": env0.observation_space, "action_space": env0.action_space,
     "learning_rate": 0.0, "lr_schedule": lambda _: 0.0, "clip_range": lambda _: 0.0})
@@ -28,11 +42,11 @@ pol = model.policy; pol.set_training_mode(False)
 
 
 def safe_moves(g):
-    snake = list(g.snake); h = snake[0]; n = g.board_size; out = []
+    snake = list(g.snake); h = snake[0]; out = []
     for d in DIRS:
         if d == OPP[g.direction]: continue
         t = (h[0] + D[d][0], h[1] + D[d][1])
-        if not (0 <= t[0] < n and 0 <= t[1] < n): continue
+        if not (0 <= t[0] < g.board_width and 0 <= t[1] < g.board_high): continue
         occ = snake if t == g.food else snake[:-1]
         if t in occ: continue
         out.append(d)
@@ -45,7 +59,7 @@ def after(g, d):
     return [t] + (snake if t == g.food else snake[:-1])
 
 
-def tail_ok(snake, n):
+def tail_ok(snake, board_width, board_high):
     """head can reach tail through free cells (tail cell counts as free)."""
     h, tail = snake[0], snake[-1]; blocked = set(snake[1:-1])
     q = deque([h]); seen = {h}
@@ -54,18 +68,18 @@ def tail_ok(snake, n):
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             p = (x + dx, y + dy)
             if p == tail and len(snake) > 2: return True
-            if 0 <= p[0] < n and 0 <= p[1] < n and p not in blocked and p not in seen and p != tail:
+            if 0 <= p[0] < board_width and 0 <= p[1] < board_high and p not in blocked and p not in seen and p != tail:
                 seen.add(p); q.append(p)
     return False
 
 
-def region(snake, n):
+def region(snake, board_width, board_high):
     h = snake[0]; blocked = set(snake[1:]); q = deque([h]); seen = {h}
     while q:
         x, y = q.popleft()
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             p = (x + dx, y + dy)
-            if 0 <= p[0] < n and 0 <= p[1] < n and p not in blocked and p not in seen:
+            if 0 <= p[0] < board_width and 0 <= p[1] < board_high and p not in blocked and p not in seen:
                 seen.add(p); q.append(p)
     return len(seen) - 1
 
@@ -116,8 +130,8 @@ def oracle(env, cands):
 
 with open(OUT, 'w') as f:
     for seed in SEEDS:
-        env = SnakeEnv(board_size=12, silent_mode=True, seed=seed, bfs_intensity=1)
-        env.reset(); n = 12
+        env = SnakeEnv(board_width=args.board_width, board_high=args.board_high, silent_mode=True, seed=seed, bfs_intensity=1)
+        env.reset()
         DECISIVE[0] = DECISIVE[1] = 0
         maxlen = 4; calls = {'risk': 0, 'loop': 0}; overrides = 0; seen_states = {}
         risk_steps = []
@@ -126,7 +140,7 @@ with open(OUT, 'w') as f:
             p = policy_probs(env, mask_of(g, safe)); move = DIRS[int(np.argmax(p))]
             gate = None
             if len(safe) > 1:
-                ok = {d: tail_ok(after(g, d), n) for d in safe}
+                ok = {d: tail_ok(after(g, d), g.board_width, g.board_high) for d in safe}
                 if not ok[move] and any(ok.values()):
                     gate = 'risk'
                 key = (tuple(g.snake), g.food)
