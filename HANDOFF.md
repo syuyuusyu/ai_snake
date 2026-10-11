@@ -23,7 +23,7 @@
 
 ### 2.1 转到 Mac 后要注意的地方
 
-- **重新 clone，不要在旧目录里 pull。**为了缩小仓库，git 历史可能已被重写（强制推送）。如果 Mac 上已有旧 clone，`git pull` 会把旧历史合并回来，旧的大文件又会被推上去。做法：
+- **重新 clone，不要在旧目录里 pull。**为了缩小仓库，git 历史已在 2026-10-11 重写并强制推送（pack 从 38MB 降到 2.5MB）。如果 Mac 上已有旧 clone，`git pull` 会把旧历史合并回来，旧的大文件又会被推上去。做法：
   ```
   mv ai_snake ai_snake_old        # 先备份旧目录，里面的 logs/ 等本地文件需要的话手动拷过来
   git clone git@github.com:syuyuusyu/ai_snake.git
