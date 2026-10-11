@@ -7,3 +7,10 @@ logs/
 .DS_Store
 .cursor/
 .codegraph/
+# editor / tool caches
+.vscode/
+.pytest_cache/
+.ruff_cache/
+
+# runtime training state
+runs/
