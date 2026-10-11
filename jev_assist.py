@@ -28,7 +28,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
-import torch
 
 DIRS = ["up", "down", "left", "right"]
 DELTA = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
@@ -319,6 +318,8 @@ class Labeler:
         return e
 
     def _greedy(self, e):
+        import torch
+
         obs = e.game.get_obs()
         t, _ = self.policy.obs_to_tensor(obs)
         with torch.no_grad():
@@ -420,6 +421,8 @@ class LabelBuffer:
         return len(self.items)
 
     def sample(self, batch_size, device):
+        import torch
+
         idx = np.random.randint(len(self.items), size=batch_size)
         obs, mask, act, w = zip(*[self.items[i][:4] for i in idx])
         return (torch.as_tensor(np.stack(obs), device=device).float(),

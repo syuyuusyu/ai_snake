@@ -66,7 +66,7 @@ class JevLabelingTest(unittest.TestCase):
         self.env.step_count = 17
         snake = list(self.env.game.snake)
         rng_state = self.env.game.rng.getstate()
-        with patch("train_with_jev.detect_gate", return_value="risk"), \
+        with patch("safe_env.detect_gate", return_value="risk"), \
                 patch.object(self.env, "step", wraps=self.env.step) as step:
             wrapper.step(0)
             wrapper.step(0)
@@ -285,7 +285,7 @@ class JevTrainingTest(unittest.TestCase):
         self.addCleanup(labeler.close)
         callback = JevLabelCallback(labeler, model.bc_buffer, max_per_round=2)
         self.addCleanup(callback.close)
-        with patch("train_with_jev.detect_gate", return_value="loop"), \
+        with patch("safe_env.detect_gate", return_value="loop"), \
                 patch.object(labeler, "verify", side_effect=lambda s: (DIRS[int(np.flatnonzero(s.mask)[0])], True, {})):
             model.learn(total_timesteps=16, callback=callback)
         self.assertGreater(len(model.bc_buffer), 0)

@@ -7,6 +7,7 @@ used in an auxiliary behaviour-cloning loss after each PPO update (DAgger-style)
     .venv/bin/python train_with_jev.py                # real Jev
     .venv/bin/python train_with_jev.py --no-jev       # rollout labels only, 0 Jev calls
     .venv/bin/python train_with_jev.py --agent claude # let `claude -p` tune hot parameters
+    .venv/bin/python train_with_jev.py --init none --no-jev --no-labels  # plain PPO from scratch under the shield
 
 With --agent, see agent_bridge.py and agent_supervision.md. A stop decision saves
 <save>_restart.zip, writes <run-dir>/restart.json and exits with code 75 for supervisor.py.
@@ -15,21 +16,21 @@ With --agent, see agent_bridge.py and agent_supervision.md. A stop decision save
 import argparse
 import copy
 import json
+import os
 import random
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import gymnasium as gym
 import numpy as np
 import torch
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 import train_with_ppo as base
 from agent_bridge import (
@@ -51,76 +52,26 @@ from board_config import (
     add_board_arguments,
     validate_board_dimensions,
 )
-from game_env import SnakeEnv
 from jev_assist import (
-    DIRS,
-    GateState,
     JevCache,
     LabelBuffer,
     Labeler,
-    Shield,
-    Snapshot,
     canonical,
-    detect_gate,
     make_jev_fn,
 )
+from safe_env import JevGateWrapper, SafeSnakeEnv, TimeoutIsTerminal  # evaluate_model imports SafeSnakeEnv from here
+from worker_vec_env import WorkerVecEnv
 
 
-class SafeSnakeEnv(SnakeEnv):
-    def __init__(self, *a, **kw):
-        super().__init__(*a, **kw)
-        self.shield = Shield(hunger=Shield.default_hunger(self.game))
-
-    def reset(self, **kw):
-        out = super().reset(**kw)
-        self.shield.reset()
-        self.shield.record(self.game, ate=False)
-        return out
-
-    def step(self, action):
-        out = super().step(action)
-        self.shield.record(self.game, ate=out[4]["step_state"] == "eat food")
-        return out
-
-    def mask_fn(self):
-        return self.shield.mask(self.game)
-
-
-class JevGateWrapper(gym.Wrapper):
-    """Records critical states; never changes the action."""
-
-    def __init__(self, env, max_per_rollout=8):
-        super().__init__(env)
-        self.gs, self.pending, self.max_per_rollout = GateState(), [], max_per_rollout
-        self._obs = None
-
-    def reset(self, **kw):
-        obs, info = self.env.reset(**kw)
-        self._obs, self.gs = obs, GateState()
-        return obs, info
-
-    def step(self, action):
-        game = self.env.unwrapped.game
-        gate = detect_gate(game, DIRS[int(action)], self.gs)
-        if gate and len(self.pending) < self.max_per_rollout and self._obs is not None:
-            self.pending.append(Snapshot.take(game, DIRS[int(action)], gate, self._obs, self.env.unwrapped.mask_fn(),
-                                              step_count=self.env.unwrapped.step_count))
-        obs, r, term, trunc, info = self.env.step(action)
-        if info.get("step_state") == "eat food":
-            self.gs.on_eat()
-        self._obs = obs
-        return obs, r, term, trunc, info
-
-    def pop_snapshots(self):
-        out, self.pending = self.pending, []
-        return out
-
-
-def make_env(seed, board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH, max_snapshots=8):
+def make_env(seed, board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_HIGH, max_snapshots=8, labels=True,
+             timeout_terminal=False):
     def _init():
         env = SafeSnakeEnv(seed=seed, board_width=board_width, board_high=board_high, silent_mode=True,
                            bfs_intensity=base.bfs_intensity, reward_gamma=base.discount_gamma)
-        env = JevGateWrapper(env, max_per_rollout=max_snapshots)
+        if timeout_terminal:
+            env = TimeoutIsTerminal(env)
+        if labels:
+            env = JevGateWrapper(env, max_per_rollout=max_snapshots)
         env = ActionMasker(env, lambda e: e.unwrapped.mask_fn())
         env = Monitor(env)
         env.reset(seed=seed)
@@ -250,11 +201,33 @@ class SafeFixedSeedEval(base.FixedSeedEvalCallback):
             super()._on_training_end()
 
 
+def _range(text):
+    start, end = map(float, text.split(":"))
+    return start, end
+
+
+# Fine-tuning keeps the stable_4 settings; scratch uses train_with_ppo.main's original run.
+FINE_TUNE = {"lr": (3e-6, 1e-6), "clip": (0.08, 0.03), "ent_coef": 0.003, "n_epochs": 2, "target_kl": 0.01}
+SCRATCH = {"lr": (5e-4, 2.5e-6), "clip": (0.15, 0.025), "ent_coef": 0.001, "n_epochs": 4, "target_kl": None}
+
+
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     add_board_arguments(ap)
-    ap.add_argument("--init", default="pth/stable_4.zip")
+    ap.add_argument("--init", default="pth/stable_4.zip", help="checkpoint to fine-tune, or 'none' to train from scratch")
+    ap.add_argument("--lr", type=_range, help="start:end learning rate (fine-tune 3e-6:1e-6, scratch 5e-4:2.5e-6)")
+    ap.add_argument("--clip", type=_range, help="start:end clip range (fine-tune 0.08:0.03, scratch 0.15:0.025)")
+    ap.add_argument("--ent-coef", type=float, help="fine-tune 0.003, scratch 0.001")
+    ap.add_argument("--n-epochs", type=int, help="fine-tune 2, scratch 4")
+    ap.add_argument("--target-kl", type=float, help="fine-tune 0.01, scratch off")
+    ap.add_argument("--timeout-terminal", action="store_true",
+                    help="train on the starvation timeout as a real loss (terminated) instead of a time limit; "
+                         "otherwise SB3 bootstraps V(last obs) and cancels the timeout penalty")
+    ap.add_argument("--no-labels", action="store_true",
+                    help="plain PPO under the shield: no critical-state snapshots, no labelling, no BC")
     ap.add_argument("--envs", type=int, default=64)
+    ap.add_argument("--workers", type=int, default=min(16, os.cpu_count() or 1),
+                    help="env subprocesses; --envs are spread across them")
     ap.add_argument("--timesteps", type=int, default=5_000_000)
     ap.add_argument("--n-steps", type=int, default=512)
     ap.add_argument("--batch-size", type=int, default=4096)
@@ -272,6 +245,8 @@ def parse_args(argv=None):
     ap.add_argument("--bc-batch-size", type=int, default=256)
     ap.add_argument("--bc-steps", type=int, default=4)
     ap.add_argument("--eval-freq", type=int, default=500_000, help="environment steps; 0 disables evaluation")
+    ap.add_argument("--checkpoint-freq", type=int, default=0,
+                    help="environment steps between <save>_<n>_steps.zip checkpoints; 0 disables")
     ap.add_argument("--eval-episodes", type=int, default=50)
     ap.add_argument("--eval-max-steps", type=int, default=20_000)
     ap.add_argument("--cache", type=Path, help="defaults to separate control/experiment caches")
@@ -294,13 +269,13 @@ def parse_args(argv=None):
         validate_board_dimensions(args.board_width, args.board_high)
     except ValueError as exc:
         ap.error(str(exc))
-    positive = ("envs", "timesteps", "n_steps", "batch_size", "jev_workers", "horizon", "max_labels",
+    positive = ("envs", "workers", "timesteps", "n_steps", "batch_size", "jev_workers", "horizon", "max_labels",
                 "snapshots_per_env", "bc_min_size", "bc_batch_size", "bc_steps", "eval_episodes", "eval_max_steps")
     if any(getattr(args, key) < 1 for key in positive):
         ap.error("training sizes, horizons and worker counts must be positive")
     if args.n_steps * args.envs < 2 or args.batch_size < 2:
         ap.error("rollout size and batch size must be >= 2")
-    if args.jev_budget < 0 or args.eval_freq < 0 or not 0 <= args.audit_rate <= 1:
+    if args.jev_budget < 0 or args.eval_freq < 0 or args.checkpoint_freq < 0 or not 0 <= args.audit_rate <= 1:
         ap.error("budgets and eval frequency must be nonnegative; audit rate must be in [0, 1]")
     if not 0 <= args.seed < 2**32 or args.envs > 10_000_000:
         ap.error("seed must be in [0, 2**32); envs must be <= 10000000")
@@ -308,6 +283,12 @@ def parse_args(argv=None):
         ap.error("--agent needs evaluations; set --eval-freq > 0")
     if args.agent_max_calls < 0 or args.agent_max_usd < 0 or args.agent_cooldown < 0:
         ap.error("agent limits must be nonnegative")
+    args.scratch = str(args.init).lower() == "none"
+    for key, value in (SCRATCH if args.scratch else FINE_TUNE).items():
+        if getattr(args, key) is None:
+            setattr(args, key, value)
+    if args.n_epochs < 1:
+        ap.error("--n-epochs must be positive")
     mode = "ctrl" if args.no_jev else "jev"
     args.save = args.save or Path(f"pth/stable_7_{mode}")
     args.cache = args.cache or Path(f"evaluations/{mode}_cache.jsonl")
@@ -338,13 +319,21 @@ def build_tunables(model, labeler, args) -> dict[str, Tunable]:
 def main(argv=None):
     args = parse_args(argv)
     set_random_seed(args.seed)
+    # Argument checks in torch.distributions cost ~15% of rollout time; masks are already validated by SB3.
+    torch.distributions.Distribution.set_default_validate_args(False)
     args.save.parent.mkdir(parents=True, exist_ok=True)
     args.log_dir.mkdir(parents=True, exist_ok=True)
     config = {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()}
     (args.log_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     seeds = random.Random(args.seed).sample(range(10_000_000), args.envs)
-    factories = [make_env(s, args.board_width, args.board_high, args.snapshots_per_env) for s in seeds]
-    env = DummyVecEnv(factories) if args.envs == 1 else SubprocVecEnv(factories)
+    if args.envs == 1:
+        env = DummyVecEnv([make_env(seeds[0], args.board_width, args.board_high, args.snapshots_per_env,
+                                    labels=not args.no_labels, timeout_terminal=args.timeout_terminal)])
+    else:
+        env = WorkerVecEnv([{"seed": s, "board_width": args.board_width, "board_high": args.board_high,
+                             "labels": not args.no_labels, "max_snapshots": args.snapshots_per_env,
+                             "timeout_terminal": args.timeout_terminal} for s in seeds],
+                           n_workers=args.workers)
     labeler = label_callback = eval_callback = bridge = None
     logger = None
     run_log = RunLog(args.run_dir)
@@ -352,18 +341,22 @@ def main(argv=None):
                   agent=args.agent, no_jev=args.no_jev)
     exit_code = 0
     try:
-        lr = base.schedule_fn(3e-6, 1e-6)
-        clip = base.schedule_fn(0.08, 0.03)
-        model = MaskablePPOWithBC.load(
-            str(args.init), env=env, device=args.device,
-            custom_objects={
-                "observation_space": env.observation_space, "action_space": env.action_space,
-                "learning_rate": lr, "lr_schedule": lr, "clip_range": clip,
-                "gamma": base.discount_gamma, "gae_lambda": base.gae_lambda,
-                "ent_coef": 0.003, "n_epochs": 2, "target_kl": 0.01,
-                "n_steps": args.n_steps, "batch_size": min(args.batch_size, args.n_steps * args.envs),
-                "seed": args.seed,
-            })
+        lr = base.schedule_fn(*args.lr)
+        clip = base.schedule_fn(*args.clip)
+        hyper = {
+            "learning_rate": lr, "clip_range": clip,
+            "gamma": base.discount_gamma, "gae_lambda": base.gae_lambda,
+            "ent_coef": args.ent_coef, "n_epochs": args.n_epochs, "target_kl": args.target_kl,
+            "n_steps": args.n_steps, "batch_size": min(args.batch_size, args.n_steps * args.envs),
+            "seed": args.seed,
+        }
+        if args.scratch:
+            model = MaskablePPOWithBC("CnnPolicy", env, device=args.device, **hyper)
+        else:
+            model = MaskablePPOWithBC.load(
+                str(args.init), env=env, device=args.device,
+                custom_objects={"observation_space": env.observation_space, "action_space": env.action_space,
+                                "lr_schedule": lr, **hyper})
         # Mutable multipliers so the agent can scale LR/clip; SB3 re-reads both every update.
         model.lr_schedule = ScaledSchedule(lr)
         model.clip_range = ScaledSchedule(clip)
@@ -386,14 +379,19 @@ def main(argv=None):
             horizon=args.horizon, audit_rate=0.0 if args.no_jev else args.audit_rate,
             max_workers=args.jev_workers, budget_per_round=0 if args.no_jev else args.jev_budget,
             seed=args.seed)
-        label_callback = JevLabelCallback(labeler, buffer, max_per_round=args.max_labels, seed=args.seed)
-        callbacks = [base.MonitorCallback(), label_callback]
+        callbacks = [base.MonitorCallback()]
+        if not args.no_labels:
+            label_callback = JevLabelCallback(labeler, buffer, max_per_round=args.max_labels, seed=args.seed)
+            callbacks.append(label_callback)
         if args.eval_freq:
             eval_callback = SafeFixedSeedEval(
                 eval_freq=max(args.eval_freq // env.num_envs, 1), seeds=range(args.eval_episodes),
                 max_episode_steps=args.eval_max_steps, best_model_path=f"{args.save}_best",
                 board_width=args.board_width, board_high=args.board_high)
             callbacks.append(eval_callback)
+        if args.checkpoint_freq:
+            callbacks.append(CheckpointCallback(max(args.checkpoint_freq // env.num_envs, 1),
+                                                str(args.save.parent), name_prefix=args.save.name))
         tunables = build_tunables(model, labeler, args)
         human = HumanControlCallback(tunables, run_log)   # train_ctl.py adjust/stop, always on
         callbacks.append(human)
