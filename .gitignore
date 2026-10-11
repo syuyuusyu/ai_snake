@@ -14,3 +14,6 @@ logs/
 
 # runtime training state
 runs/
+
+# experiment checkpoints (promote keepers to pth/<name>.zip)
+pth/exp/

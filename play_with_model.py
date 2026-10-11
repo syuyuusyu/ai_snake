@@ -32,7 +32,7 @@ def make_env(seed=0, board_width=DEFAULT_BOARD_WIDTH, board_high=DEFAULT_BOARD_H
 def main():
     parser = argparse.ArgumentParser()
     add_board_arguments(parser)
-    parser.add_argument("--model", default="pth/stable_5.zip")
+    parser.add_argument("--model", default="pth/stable_shield_1.zip")
     args = parser.parse_args()
     board_width, board_high = args.board_width, args.board_high
     seed_set = set()

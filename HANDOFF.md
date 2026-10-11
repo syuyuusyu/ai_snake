@@ -4,7 +4,7 @@
 
 ## 1. 一句话结论
 
-**目前最好的方案是：开着 `Shield` 从头训练的模型 `pth/exp/scr_14999040_steps.zip`，配合 `Shield` 使用。**
+**目前最好的方案是：开着 `Shield` 从头训练的模型 `pth/stable_shield_1.zip`，配合 `Shield` 使用。**
 - 种子 2000–2399（400 局，挑检查点时没用过）：胜率 **99.2%**，超时 0.8%，死亡 0。
 - 同样条件下 `stable_4` + `Shield` 的胜率是 81%。
 
@@ -15,9 +15,11 @@
 ## 2. Git 状态
 
 - 分支：`master`。
-- 本地没有提交的东西：
-  - `pth/exp/`（约 59MB）：Windows 上做实验产生的检查点，见第 5 节。要正式用 15M 步的模型，建议复制成有名字的文件（例如 `pth/stable_shield_1.zip`）后再提交。
-  - `pth/final_34.zip`、`runs/`、`logs/`（训练日志）。
+- `pth/` 里只保留两个模型：
+  - `stable_shield_1.zip`：第 5.2 节 B 的 15M 步检查点（原 `pth/exp/scr_14999040_steps.zip`），当前最好的模型；
+  - `stable_4.zip`：基线，也是 `train_with_jev.py --init` 的默认值。
+- 其他旧模型和 `pth/exp/` 的检查点已删除，需要时可从提交 `b230add` 找回。
+- 不进 git 的：`pth/exp/`（实验检查点，要留的复制成 `pth/<名字>.zip` 再提交）、`runs/`、`logs/`。
 
 ## 3. 安装环境（uv）
 
@@ -45,7 +47,7 @@ uv sync
 
 **评估模型**：
 ```
-uv run python evaluate_model.py pth/exp/scr_14999040_steps.zip
+uv run python evaluate_model.py pth/stable_shield_1.zip
 uv run python evaluate_model.py pth/stable_4.zip --no-shield
 ```
 - 默认用种子 1000–1199 共 200 局。训练过程中的评估用的是种子 0–49，所以比较模型时要用另一组种子。
@@ -53,7 +55,7 @@ uv run python evaluate_model.py pth/stable_4.zip --no-shield
 
 **看蛇在屏幕上玩**：
 ```
-uv run python play_with_model.py --model pth/exp/scr_14999040_steps.zip
+uv run python play_with_model.py --model pth/stable_shield_1.zip
 ```
 
 ## 5. 实验和结论
