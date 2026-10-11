@@ -18,8 +18,26 @@
 - `pth/` 里只保留两个模型：
   - `stable_shield_1.zip`：第 5.2 节 B 的 15M 步检查点（原 `pth/exp/scr_14999040_steps.zip`），当前最好的模型；
   - `stable_4.zip`：基线，也是 `train_with_jev.py --init` 的默认值。
-- 其他旧模型和 `pth/exp/` 的检查点已删除，需要时可从提交 `b230add` 找回。
-- 不进 git 的：`pth/exp/`（实验检查点，要留的复制成 `pth/<名字>.zip` 再提交）、`runs/`、`logs/`。
+- 其他旧模型、`pth/exp/` 的检查点和 Jev 评估的原始数据（`evaluations/jev_*`）已删除。完整备份在 Windows 机器上：`C:\code\project\ml\ai_snake-backup-20261011.bundle`（`git clone <bundle>` 即可还原）。
+- 不进 git 的：`pth/exp/`（实验检查点，要留的复制成 `pth/<名字>.zip` 再提交）、`runs/`、`logs/`、`.vscode/`。
+
+### 2.1 转到 Mac 后要注意的地方
+
+- **重新 clone，不要在旧目录里 pull。**为了缩小仓库，git 历史可能已被重写（强制推送）。如果 Mac 上已有旧 clone，`git pull` 会把旧历史合并回来，旧的大文件又会被推上去。做法：
+  ```
+  mv ai_snake ai_snake_old        # 先备份旧目录，里面的 logs/ 等本地文件需要的话手动拷过来
+  git clone git@github.com:syuyuusyu/ai_snake.git
+  ```
+- **环境**：`uv sync` 在 Mac 上会从 PyPI 装 torch（用 MPS）并装 `mlx`。第 3 节关于 cu124 和南大镜像的内容只针对 Windows，Mac 上不用管。
+- **训练速度和参数**：第 5.2 节的速度（约 19k 步/秒）和 `--workers 22` 是 RTX 4080 + 多核 Windows 机器上的数据。Mac 上 `--workers` 默认取 `min(16, CPU 核数)`，不要照抄 22；先跑一小段确认速度，再估算 15M 步要多久。
+- **`train_ctl.py` 和 `.claude/skills/` 在 Mac 上可以用**：第 9 节的问题只出现在 Windows 上。
+- **`play_with_model.py` 默认模型**已改为 `pth/stable_shield_1.zip`（原来是已删除的 `stable_5.zip`）。
+- **MLX 权重**：`pth/snake_policy.safetensors` 已删除，仓库里没有代码读取它。需要时在 Mac 上重新生成：
+  ```
+  uv run python convert_to_mlx.py --model pth/stable_4.zip --out pth/snake_policy.safetensors
+  ```
+  原来的文件就是这样从 `stable_4` 转出来的。`stable_shield_1` 的网络结构可能不同（文件更大），还没试过能不能转。
+- **Windows 专用的内容**：`safe_env.py` 不导入 torch 是为了避开 Windows 的内存提交上限，Mac 上没有这个问题，但保持现状即可，不用改回去。
 
 ## 3. 安装环境（uv）
 
